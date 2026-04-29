@@ -1,0 +1,430 @@
+procedure TFMForm.SpeedButton1Click(Sender: TObject);
+var     F: TextFile;
+        S,SBuff: String;
+        i,numfile:integer;
+
+        TheFileName,TheFileName2: string;
+        l_index : integer;
+        Flag1,Flag_Dup:Boolean;
+        customer_PO1,customer_num1,NumLine : string;
+begin
+        TEDH.close;
+        TEDH.EmptyTable;
+        TEDH.open;
+
+        TEDL.close;
+        TEDL.EmptyTable;
+        TEDL.open;
+
+        TEDH_C.close;
+        TEDH_C.EmptyTable;
+        TEDH_C.open;
+
+        TEDL_C.close;
+        TEDL_C.EmptyTable;
+        TEDL_C.open;
+
+        EDH_Temp.close;
+        EDH_Temp.EmptyTable;
+        EDH_Temp.open;
+
+
+        EDL_Temp.close;
+        EDL_Temp.EmptyTable;
+        EDL_Temp.open;
+
+        TFSelect.close;
+        TFSelect.EmptyTable;
+        TFSelect.open;
+
+  Flag1:=True;
+  l_index:=0;
+  FileList.Update;
+  while  Flag1 do
+  begin
+       TheFileName := FileList.Items[l_index];
+       if StrToFloat(Format('%d', [GetFileSize(TheFileName)])) < 0 then
+       begin
+          Flag1:=False;
+          l_index:=l_index-1;
+       end
+       else
+       begin
+            l_index:=l_index+1;
+       end;
+  end;
+        for numfile := 0 to l_index do  begin
+        AssignFile(F, DirectoryOutline.Directory+'\'+FileList.Items[numfile]);   { File selected }
+        Reset(F);
+        while not Eof(F) do
+        begin
+                Readln(F, S);                          { Read the first line out of the file }
+                if Trim(S)<>'' then
+                begin
+                    if S[1]='H' then
+                    begin
+                        Flag_Dup:=False;
+                        TEDH.Append;
+
+                        //1
+                        SBuff:='';
+                        if Length(Trim(S)) > 2 then  begin
+                                for i := 2 to 16 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDH.FieldByName('Customer_PO').asstring:=SBuff;
+                                EDH_Temp.Append;
+                                EDH_Temp.FieldByName('Customer_PO').asstring:=SBuff;
+                                customer_PO1:=SBuff;
+                        end;
+                        //2
+                      {  SBuff:='';
+                        if Length(Trim(S)) > 16 then  begin
+                                for i := 17 to 22 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDH.FieldByName('Customer_Num').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Customer_Num').asstring:=SBuff;
+                                customer_num1:=SBuff;
+                        end;
+                        //***********
+
+                        if TheFileName2 <> FileList.Items[numfile] then
+                        begin
+                        TFSelect.append;
+                        TCus.Filtered:=False;
+                        TCus.Filter:='Customer_Code='+#39+SBuff+#39;
+                        TCus.Filtered:=True;
+                        if TCus.RecordCount > 0 then begin TFSelectCus_code.Value:= TCusCus_name.Value; end;
+                        TCus.Filtered:=False;
+
+                        TFSelectFilename.Value:=FileList.Items[numfile];
+                        TheFileName2:=FileList.Items[numfile];
+                        TFSelect.post;
+                        end;     }
+
+                        //***********
+
+                        //3
+                        SBuff:='';
+                        if Length(Trim(S)) > 22 then  begin
+                                for i := 23 to 30 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDH.FieldByName('Order_Date').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Order_Date').asstring:=SBuff;
+                        end;
+                        //4
+                        SBuff:='';
+                        if Length(Trim(S)) > 30 then  begin
+                                for i := 31 to 38 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDH.FieldByName('Request_Date').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Request_Date').asstring:=SBuff;
+                        end;
+                        //5
+                        SBuff:='';
+                        if Length(Trim(S)) > 38 then  begin
+                                for i := 39 to 41 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDH.FieldByName('Term_Pay').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Term_Pay').asstring:=SBuff;
+                        end;
+                        //6
+                        SBuff:='';
+                        if Length(Trim(S)) > 44 then  begin
+                                for i :=45  to 51 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDH.FieldByName('Order_Qty').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Order_Qty').asstring:=SBuff;
+                        end;
+                        //7
+                        SBuff:='';
+                        if Length(Trim(S)) > 51 then  begin
+                                for i := 52 to 64 do  begin  SBuff:=SBuff+ S[i]; if i=62 then SBuff:=SBuff+'.'; end;
+                                TEDH.FieldByName('Order_Amount').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Order_Amount').asstring:=SBuff;
+                        end;
+                        //8
+                        SBuff:='';
+                        if Length(Trim(S)) > 64 then  begin
+                                for i := 65 to 75 do  begin  SBuff:=SBuff+ S[i]; if i=73 then SBuff:=SBuff+'.'; end;
+                                TEDH.FieldByName('Discount_Amount').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Discount_Amount').asstring:=SBuff;
+                        end;
+                        //9
+                        SBuff:='';
+                        if Length(Trim(S)) > 75 then  begin
+                                for i := 76 to 86 do  begin  SBuff:=SBuff+ S[i]; if i=84 then SBuff:=SBuff+'.'; end;
+                                TEDH.FieldByName('S_Discount_Amount').asstring:=SBuff;
+                                EDH_Temp.FieldByName('S_Discount_Amount').asstring:=SBuff;
+                        end;
+                        //10
+                        SBuff:='';
+                        if Length(Trim(S)) > 87 then  begin
+                                for i := 87 to 97 do  begin  SBuff:=SBuff+ S[i]; if i=95 then SBuff:=SBuff+'.';  end;
+                                TEDH.FieldByName('Tax_Amount').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Tax_Amount').asstring:=SBuff;
+                        end;
+                        //10
+                        SBuff:='';
+                        if Length(Trim(S)) > 97 then  begin
+                                for i := 98 to 110 do  begin  SBuff:=SBuff+ S[i]; if i=108 then SBuff:=SBuff+'.';  end;
+                                TEDH.FieldByName('Total_Amount').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Total_Amount').asstring:=SBuff;
+                        end;
+                        //11
+                        SBuff:='';
+                        if Length(Trim(S)) > 110  then  begin
+                                for i :=111  to 160 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDH.FieldByName('Ship_To_Address').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Ship_To_Address').asstring:=SBuff;
+                        end;
+                        //12
+                        SBuff:='';
+                        if Length(Trim(S)) > 160 then  begin
+                                for i := 161 to 210 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDH.FieldByName('Order_Note').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Order_Note').asstring:=SBuff;
+                        end;
+                        //13
+                        SBuff:='';
+                        if Length(Trim(S)) > 210 then  begin
+                                for i := 211 to 218 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDH.FieldByName('Generate_Date').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Generate_Date').asstring:=SBuff;
+                        end;
+                        //14
+                        SBuff:='';
+                        if Length(Trim(S)) > 218 then  begin
+                                for i := 219 to 226 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDH.FieldByName('Process_Date').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Process_Date').asstring:=SBuff;
+                        end;
+
+                        //15
+                        SBuff:='';
+                        if Length(Trim(S)) > 226 then  begin
+                                //for i := 17 to 22 do  begin  SBuff:=SBuff+ S[i]; end;
+                                for i := 227 to 241 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDH.FieldByName('Customer_Num').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Customer_Num').asstring:=SBuff;
+                                customer_num1:=SBuff;
+                        end;
+
+                        //16
+                        SBuff:='';
+                        if Length(Trim(S)) > 333 then  begin
+                                //for i := 17 to 22 do  begin  SBuff:=SBuff+ S[i]; end;
+                                for i := 334 to 337 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDH.FieldByName('Deli_Time').asstring:=SBuff;
+                                EDH_Temp.FieldByName('Deli_Time').asstring:=SBuff;
+                                customer_num1:=SBuff;
+                        end;
+
+                        //***********
+                        if TheFileName2 <> FileList.Items[numfile] then
+                        begin
+                        SBuff:=Trim(SBuff);
+                        TFSelect.append;
+                        TCus.Filtered:=False;
+                        TCus.Filter:='Customer_Code='+#39+SBuff+#39;
+                        TCus.Filtered:=True;
+                        if TCus.RecordCount > 0 then begin TFSelectCus_code.Value:= TCusCus_name.Value; end;
+                        TCus.Filtered:=False;
+
+                        TFSelectFilename.Value:=FileList.Items[numfile];
+                        TheFileName2:=FileList.Items[numfile];
+                        TFSelect.post;
+                        end;
+
+
+                        //TheFileName:=FileList.Items[numfile];
+                        TEDH.FieldByName('Supplie').asstring:='H';
+                        TEDH.FieldByName('File_Order').asstring:=FileList.Items[numfile];
+                        EDH_Temp.FieldByName('Supplie').asstring:='H';
+                        EDH_Temp.FieldByName('File_Order').asstring:=FileList.Items[numfile];
+                        TEDH_C.Refresh;
+                        TEDH_C.Filtered:=False;
+                        TEDH_C.Filter:='Customer_PO='+ #39+trim(customer_PO1)+#39 +
+                                       ' and Customer_Num='+#39+trim(customer_num1)+#39;
+                        TEDH_C.Filtered:=True;
+                        if  TEDH_C.RecordCount < 1 then
+                        begin
+                                EDH_Temp.cancel;
+                                TEDH.post;
+                                TEDH_C.Filtered:=False;
+                                TEDH_C.Append;
+                                TEDH_C.FieldByName('Customer_PO').asstring:=Trim(customer_PO1);
+                                TEDH_C.FieldByName('Customer_Num').asstring:=Trim(customer_num1);
+                                TEDH_C.Post;
+                        end
+                        else
+                        begin
+                                TEDH.cancel;
+                                EDH_Temp.post;
+                                Flag_Dup:=True;
+                                MessageDlg('ÁÕ¢éÍÁÙÅ P/O «éÓ', mtInformation,[mbOk], 0);
+                        end;
+
+                    end
+                    else if S[1]='D' then
+                    begin
+                        TEDL.append;
+                        EDL_Temp.append;
+                        //1
+                        SBuff:='';
+                        if Length(Trim(S)) > 2 then  begin
+                                for i := 2 to 16 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDL.FieldByName('Customer_PO').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Customer_PO').asstring:=SBuff;
+                                customer_PO1:=SBuff;
+                        end;
+                      {  //2
+                        SBuff:='';
+                        if Length(Trim(S)) > 16 then  begin
+                                for i := 17 to 22 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDL.FieldByName('Customer_Num').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Customer_Num').asstring:=SBuff;
+                                customer_num1:=SBuff;
+                        end;      }
+                        //3
+                        SBuff:='';
+                        if Length(Trim(S)) > 22 then  begin
+                                for i := 23 to 25 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDL.FieldByName('Line_Num').asstring:=SBuff;//asinteger:=StrToInt(SBuff);
+                                EDL_Temp.FieldByName('Line_Num').asstring:=SBuff;
+                                NumLine:=IntToStr(StrToInt(SBuff));
+                        end;
+                        //4
+                        SBuff:='';
+                        if Length(Trim(S)) > 25 then  begin
+                                for i := 26 to 40 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDL.FieldByName('Item_Num').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Item_Num').asstring:=SBuff;
+                        end;
+                        //5
+                        SBuff:='';
+                        if Length(Trim(S)) > 40 then  begin
+                                for i := 41 to 85 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDL.FieldByName('Item_Description').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Item_Description').asstring:=SBuff;
+                        end;
+                        //6
+                        SBuff:='';
+                        if Length(Trim(S)) > 85 then  begin
+                                for i :=86  to 99 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDL.FieldByName('Bar_Code_Item').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Bar_Code_Item').asstring:=SBuff;
+                        end;
+                        //7
+                        SBuff:='';
+                        if Length(Trim(S)) > 99 then  begin
+                                for i := 100 to 101 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDL.FieldByName('Unit_Measure').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Unit_Measure').asstring:=SBuff;
+                        end;
+                        //8
+                        SBuff:='';
+                        if Length(Trim(S)) > 101 then  begin
+                                for i := 102 to 108 do  begin  SBuff:=SBuff+ S[i]; if i=106 then SBuff:=SBuff+'.'; end;
+                                TEDL.FieldByName('Unit_Price').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Unit_Price').asstring:=SBuff;
+                        end;
+                        //9
+                        SBuff:='';
+                        if Length(Trim(S)) > 108 then  begin
+                                for i := 109 to 115 do  begin  SBuff:=SBuff+ S[i]; if i=73 then SBuff:=SBuff+'.' end;
+                                TEDL.FieldByName('Order_Qty').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Order_Qty').asstring:=SBuff;
+                        end;
+                        //10
+                        SBuff:='';
+                        if Length(Trim(S)) > 115 then  begin
+                                for i := 116 to 122 do  begin  SBuff:=SBuff+ S[i]; if i=84 then SBuff:=SBuff+'.' end;
+                                TEDL.FieldByName('Free_Qty').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Free_Qty').asstring:=SBuff;
+                        end;
+                        //11
+                        SBuff:='';
+                        if Length(Trim(S)) > 122 then  begin
+                                for i := 123 to 133 do  begin  SBuff:=SBuff+ S[i]; if i=131 then SBuff:=SBuff+'.'  end;
+                                TEDL.FieldByName('Net_Amount').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Net_Amount').asstring:=SBuff;
+                        end;
+                        //12
+                        SBuff:='';
+                        if Length(Trim(S)) > 133 then  begin
+                                for i := 134 to 141 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDL.FieldByName('Order_Date').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Order_Date').asstring:=SBuff;
+                        end;
+                        //13
+                        SBuff:='';
+                        if Length(Trim(S)) > 141  then  begin
+                                for i :=142  to 149 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDL.FieldByName('Request_Date').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Request_Date').asstring:=SBuff;
+                        end;
+                        //13
+                        SBuff:='';
+                        if Length(Trim(S)) > 149  then  begin
+                                for i :=150  to 154 do  begin  SBuff:=SBuff+ S[i]; if i=152 then SBuff:=SBuff+'.'; end;
+                                TEDL.FieldByName('Discount_1').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Discount_1').asstring:=SBuff;
+                        end;
+                        //14
+                        SBuff:='';
+                        if Length(Trim(S)) > 154 then  begin
+                                for i := 155 to 159 do  begin  SBuff:=SBuff+ S[i]; if i=157 then SBuff:=SBuff+'.'; end;
+                                TEDL.FieldByName('Discount_2').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Discount_2').asstring:=SBuff;
+                        end;
+
+                        //15
+                        SBuff:='';
+                        if Length(Trim(S)) > 159 then  begin
+                                for i := 160 to 174 do  begin  SBuff:=SBuff+ S[i]; if i=172 then SBuff:=SBuff+'.'; end;
+                                TEDL.FieldByName('Discount_Amount_Unit').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Discount_Amount_Unit').asstring:=SBuff;
+                        end;
+
+                        //16
+                        SBuff:='';
+                        if Length(Trim(S)) > 174 then  begin
+                                for i := 175 to 188 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDL.FieldByName('Buyer_Internal_Prod_code').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Buyer_Internal_Prod_code').asstring:=SBuff;
+                        end;
+                        //17
+                        SBuff:='';
+                        if Length(Trim(S)) > 188 then  begin
+                                for i := 189 to 203 do  begin  SBuff:=SBuff+ S[i]; end;
+                                TEDL.FieldByName('Customer_Num').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Customer_Num').asstring:=SBuff;
+                                customer_num1:=SBuff;
+                        end;
+
+                       //18
+                        SBuff:='';
+                        if Length(Trim(S)) > 255 then  begin
+                                for i := 256 to 260 do  begin  SBuff:=SBuff+ S[i]; if i=258 then SBuff:=SBuff+'.'; end;
+                                TEDL.FieldByName('Discount_3').asstring:=SBuff;
+                                EDL_Temp.FieldByName('Discount_3').asstring:=SBuff;
+                        end;
+
+                        if Flag_Dup=False then
+                        begin
+                           TEDL.post;
+                           EDL_Temp.cancel;
+                        end
+                        else
+                        begin
+                           TEDL.cancel;
+                           EDL_Temp.Post;
+                        end;
+                    end;
+                end;
+        end;
+        CloseFile(F);
+        end;
+        TEDL.close;
+        TEDH.Close;
+
+        TEDH.open;
+        TEDL.open;
+        SpeedButton9.Click;
+        PageControl1.ActivePage:= TabSheet2;
+        SB_CheckData.Click;
+end;

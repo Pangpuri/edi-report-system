@@ -1,65 +1,147 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { Suspense, useCallback, useEffect, useState, useMemo } from "react";
+import { useMasterData } from "@/app/useMasterData";
+import { SessionUser } from "@/app/edi";
+import { useDashboardActions } from "@/app/hooks/useDashboardActions";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+import { SlidebarLayout } from "@/components/layout/SlideBar";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { DashboardSearch } from "@/components/dashboard/DashboardSearch";
+import { DashboardMainContent } from "@/components/dashboard/DashboardMainContent";
+
+export const dynamic = "force-dynamic";
+
+function DashboardContent() {
+  const router = useRouter();
+  const { data: session, isPending: isAuthLoading } = authClient.useSession();
+  
+  // 🌸 State สำหรับจัดการ Fallback กรณีระบบ Auth ค้าง (เช่น WebSocket ผ่าน IP มีปัญหา)
+  const [isTimeout, setIsTimeout] = useState(false);
+
+  // 🛡️ Effect สำหรับนับถอยหลัง 3 วินาที
+  useEffect(() => {
+    if (isAuthLoading) {
+      const timer = setTimeout(() => {
+        setIsTimeout(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthLoading]);
+
+  // 🛡️ Dashboard Logic Hook
+  const {
+    activeTab, setActiveTab, viewMode, setViewMode, isPending,
+    deleteTarget, setDeleteTarget, editTarget, setEditTarget,
+    viewTarget, setViewTarget, handleDelete
+  } = useDashboardActions();
+
+  // 🛡️ Data Fetching Hook
+  const masterData = useMasterData(activeTab);
+
+  // 🌸 คำนวณค่าต่างๆ โดยใช้ useMemo เพื่อประสิทธิภาพสูงสุด
+  const user = session?.user as SessionUser | undefined;
+  const userRole = useMemo(() => user?.role || "user", [user]);
+  const isMasterDataTab = useMemo(() => 
+    ["customer", "address", "product"].includes(activeTab), 
+    [activeTab]
+  );
+
+  // 🌸 ตัดสินใจว่าจะโชว์เนื้อหาหรือยัง
+  const shouldShowContent = !isAuthLoading || isTimeout;
+
+  // 🛡️ ป้องกันการเข้าถึงโดยไม่ได้ Login (Client-side Guard)
+  useEffect(() => {
+    if (shouldShowContent && !session && !isAuthLoading) {
+      router.push("/login");
+    }
+  }, [shouldShowContent, session, isAuthLoading, router]);
+
+  const handleSignOut = useCallback(async () => {
+    await authClient.signOut({
+      fetchOptions: { 
+        onSuccess: () => { 
+          router.push("/login"); 
+          router.refresh(); 
+        } 
+      },
+    });
+  }, [router]);
+
+  // 🌸 แสดงสถานะ Loading (Spinner)
+  if (!shouldShowContent) {
+    return (
+      <div className="min-h-screen bg-ui-bg flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <SlidebarLayout
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      user={user}
+      onSignOut={handleSignOut}
+      viewTarget={viewTarget}
+      setViewTarget={setViewTarget}
+      editTarget={editTarget}
+      setEditTarget={setEditTarget}
+      deleteTarget={deleteTarget}
+      setDeleteTarget={setDeleteTarget}
+      isPending={isPending}
+      handleDelete={handleDelete}
+      refresh={masterData.refresh}
+    >
+      {/* 🏷️ ส่วนหัวและส่วนค้นหา - ปรับให้กระชับขึ้น */}
+      <div className="bg-ui-card p-4 md:p-6 rounded-2xl border border-ui-border shadow-md relative z-[40] mb-4">
+        <DashboardHeader 
+          activeTab={activeTab}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          isMasterDataTab={isMasterDataTab}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+        <DashboardSearch 
+          viewMode={viewMode}
+          isMasterDataTab={isMasterDataTab}
+          searchQuery={masterData.searchQuery}
+          setSearchQuery={masterData.setSearchQuery}
+          activeTab={activeTab}
+        />
+      </div>
+
+      {/* 🏷️ ส่วนแสดงเนื้อหาหลัก - ลบความเทอะทะ */}
+      <DashboardMainContent 
+        viewMode={viewMode}
+        activeTab={activeTab}
+        loading={masterData.loading}
+        error={masterData.error}
+        refresh={masterData.refresh}
+        filteredData={masterData.filteredData}
+        userRole={userRole}
+        setDeleteTarget={setDeleteTarget}
+        setEditTarget={setEditTarget}
+        setViewTarget={setViewTarget}
+        currentPage={masterData.currentPage}
+        totalPages={masterData.totalPages}
+        goToNextPage={masterData.goToNextPage}
+        goToPreviousPage={masterData.goToPreviousPage}
+        setViewMode={setViewMode}
+      />
+    </SlidebarLayout>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-ui-bg flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin" />
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   );
 }

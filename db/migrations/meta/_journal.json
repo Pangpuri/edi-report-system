@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1776758509453,
+      "tag": "0000_true_purple_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776920177444,
+      "tag": "0001_add_missing_fields_v2",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777284939866,
+      "tag": "0002_plain_shocker",
+      "breakpoints": true
+    }
+  ]
+}
