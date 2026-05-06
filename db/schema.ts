@@ -14,7 +14,7 @@ import { relations } from "drizzle-orm";
 // --- กลุ่มตารางระบบ Auth และ User Management ---
 
 export const user = pgTable("user", {
-  /* เก็บข้อมูล User และ Role ระบบ */ id: text("id").primaryKey(),
+ id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
@@ -31,7 +31,7 @@ export const user = pgTable("user", {
 });
 
 export const session = pgTable("session", {
-  /* จัดการ Session การ Login */ id: text("id").primaryKey(),
+ id: text("id").primaryKey(),
   expiresAt: timestamp("expires_at").notNull(),
   token: text("token").notNull().unique(),
   createdAt: timestamp("created_at").notNull(),
@@ -44,7 +44,7 @@ export const session = pgTable("session", {
 });
 
 export const account = pgTable("account", {
-  /* ข้อมูล OAuth / Provider ต่างๆ */ id: text("id").primaryKey(),
+  id: text("id").primaryKey(),
   accountId: text("account_id").notNull(),
   providerId: text("provider_id").notNull(),
   userId: text("user_id")
@@ -62,7 +62,7 @@ export const account = pgTable("account", {
 });
 
 export const verification = pgTable("verification", {
-  /* เก็บ Token ตรวจสอบความถูกต้อง (Email/OTP) */ id: text("id").primaryKey(),
+ id: text("id").primaryKey(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
@@ -73,7 +73,6 @@ export const verification = pgTable("verification", {
 // --- กลุ่มตาราง Master Data (อ้างอิงข้อมูลหลัก) ---
 
 export const customer = pgTable("customer", {
-  /* ข้อมูลลูกค้าหลัก (Master Customer) */
   ean_location_code: varchar("ean_location_code", { length: 100 }),
   company_name: varchar("company_name", { length: 255 }),
   customer_code: varchar("customer_code", { length: 50 })
@@ -83,7 +82,6 @@ export const customer = pgTable("customer", {
 });
 
 export const custAddress = pgTable("cust_address", {
-  /* สมุดที่อยู่ลูกค้า/สาขา และการตั้งค่าเอกสาร */
   id: serial("id").primaryKey(),
   customer_no: varchar("customer_no", { length: 50 }),
   company_name: varchar("company_name", { length: 255 }),
@@ -107,7 +105,6 @@ export const custAddress = pgTable("cust_address", {
 });
 
 export const prodcode = pgTable("prodcode", {
-  /* ข้อมูลรหัสสินค้าและ EAN (Master Product) */
   id: varchar("id", { length: 50 }).notNull().primaryKey(),
   ean_product_code: varchar("ean_product_code", { length: 50 }),
   product_description: varchar("product_description", { length: 255 }),
@@ -116,7 +113,6 @@ export const prodcode = pgTable("prodcode", {
 // --- กลุ่มตาราง Temp (พักข้อมูลระหว่าง Parse ไฟล์) ---
 
 export const EDH_temp = pgTable("EDH_tmp", {
-  /* พักข้อมูลส่วนหัว (Header) จากไฟล์ TXT/TAB ชั่วคราว */
   id: serial("id").primaryKey(),
   H_Type: varchar("H_Type", { length: 1 }),
   Customer_PO: varchar("Customer_PO", { length: 25 }),
@@ -143,7 +139,6 @@ export const EDH_temp = pgTable("EDH_tmp", {
 });
 
 export const EDL_temp = pgTable("EDL_tmp", {
-  /* พักข้อมูลรายการสินค้า (Detail) จากไฟล์ TXT/TAB ชั่วคราว */
   id: serial("id").primaryKey(),
   D_Type: varchar("D_Type", { length: 1 }),
   Customer_PO: varchar("Customer_PO", { length: 25 }),
@@ -175,7 +170,7 @@ export const EDL_temp = pgTable("EDL_tmp", {
 // --- กลุ่มตาราง History (คลังข้อมูลหลักที่ใช้ส่งเข้า AS/400) ---
 
 export const TEDH = pgTable("EDH_history", {
-  /* ข้อมูล Header ที่ตรวจสอบแล้ว พร้อมรอส่งเข้า AS/400 */
+
   id: serial("id").primaryKey(),
   H_Type: varchar("H_Type", { length: 1 }),
   Customer_PO: varchar("Customer_PO", { length: 25 }),
@@ -242,7 +237,7 @@ export const TEDL = pgTable("EDL_history", {
 // --- กลุ่มตาราง Log และ System Config ---
 
 export const as400_logs = pgTable("as400_logs", {
-  // เก็บผลลัพธ์/Error ของแต่ละรายการที่ส่งเข้า AS/400
+  
   id: serial("id").primaryKey(),
   historyId: integer("history_id").references(() => TEDH.id, {
     onDelete: "cascade",
@@ -253,7 +248,6 @@ export const as400_logs = pgTable("as400_logs", {
 });
 
 export const rawFileArchives = pgTable("raw_file_archives", {
-  // เก็บประวัติไฟล์ดิบและที่อยู่ไฟล์ใน Storage
   id: serial("id").primaryKey().notNull(),
   fileName: text("file_name").notNull(),
   originalName: text("original_name").notNull(),
@@ -264,7 +258,6 @@ export const rawFileArchives = pgTable("raw_file_archives", {
 });
 
 export const branches = pgTable("branches", {
-  // ข้อมูลสาขาต้นทางและ Path สำหรับดึงไฟล์
   id: serial("id").primaryKey().notNull(),
   branchName: varchar("branch_name", { length: 100 }).notNull(),
   branchCode: varchar("branch_code", { length: 50 }).notNull().unique(),
@@ -278,7 +271,7 @@ export const branches = pgTable("branches", {
 });
 
 export const systemConfigs = pgTable("system_configs", {
-  /* ตั้งค่าระบบ เช่น STAGING_PATH */ id: serial("id").primaryKey().notNull(),
+ id: serial("id").primaryKey().notNull(),
   configKey: varchar("config_key", { length: 100 }).unique().notNull(),
   configValue: text("config_value"),
   description: text("description"),
@@ -286,7 +279,7 @@ export const systemConfigs = pgTable("system_configs", {
 });
 
 export const importLogs = pgTable("import_logs", {
-  /* บันทึกสถานะการ Import ไฟล์จากแต่ละสาขา */
+
   id: serial("id").primaryKey().notNull(),
   branchId: integer("branch_id").references(() => branches.id),
   fileName: varchar("file_name", { length: 255 }),
@@ -298,7 +291,6 @@ export const importLogs = pgTable("import_logs", {
 export const ediRawStaging = pgTable(
   "edi_raw_staging",
   {
-    /* พักเนื้อหาไฟล์แบบบรรทัดต่อบรรทัดก่อน Parse เข้า Temp */
     id: serial("id").primaryKey().notNull(),
     fileName: varchar("file_name", { length: 255 }).notNull(),
     lineContent: text("line_content").notNull(),
