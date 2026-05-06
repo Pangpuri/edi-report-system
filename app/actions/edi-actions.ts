@@ -144,9 +144,9 @@ export async function createProductAction(data: z.infer<typeof prodcodeSchema>):
 
     const values = validatedFields.data;
     await db.insert(prodcode).values({
+      id: values.internal_product_code ?? values.ean_product_code, // ใช้ internal_product_code เป็น id
       ean_product_code: values.ean_product_code,
       product_description: values.product_description,
-      product_code: values.internal_product_code ?? "", // แมป internal_product_code -> product_code
     });
     revalidatePath("/");
     return { success: true };
@@ -179,7 +179,7 @@ export async function updateProductAction(id: string, data: z.infer<typeof prodc
       .set({ 
         ean_product_code: values.ean_product_code,
         product_description: values.product_description,
-        product_code: values.internal_product_code ?? "",
+        id: values.internal_product_code ?? values.ean_product_code,
       })
       .where(eq(prodcode.ean_product_code, id));
 

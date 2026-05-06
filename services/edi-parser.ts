@@ -1,257 +1,123 @@
-// services/edi-parser.ts
 import iconv from "iconv-lite";
 import { db } from "@/db";
-import { EDH_tmp, EDL_tmp, prodcode, customer, custAddress } from "@/db/schema";
+import { EDH_temp, EDL_temp } from "@/db/schema";
 import { revalidatePath } from "next/cache";
-import { eq, sql } from "drizzle-orm";
 
-// Core Modules
-import { EDIPreProcessor } from "./edi-preprocessor";
-import { insertRawLines } from "./edi-raw-service";
-import { BigCNormalizer } from "./bigc-normalizer";
-import { CJNormalizer } from "./cj-normalizer";
-
-// Parsers
-import { EDIParserModule } from "./parsers/base-parser";
-import { BigCParser } from "./parsers/parser-bigc";
-import { CJParser } from "./parsers/parser-cj";
-import { CentralParser } from "./parsers/parser-central";
-
-// ============================================
-// 📊 Master Data Lookup Logic (Read-Only)
-// ============================================
-
-async function lookupCustomerMaster(vendorCode: string) {
-  if (!vendorCode || vendorCode === "UNKNOWN") return null;
-  const cleanedCode = vendorCode.trim();
-  
-  const master = await db.query.customer.findFirst({
-    where: (c, { eq }) => eq(sql`TRIM(${c.customer_code})`, cleanedCode)
-  });
-
-  if (master) {
-    return {
-      shortName: master.short_name || "",
-      companyName: master.company_name || "",
-      customerCode: master.customer_code || ""
-    };
-  }
-
-  const addr = await db.query.custAddress.findFirst({
-    where: (a, { eq }) => eq(sql`TRIM(${a.customer_no})`, cleanedCode)
-  });
-
-  return addr ? {
-    shortName: addr.branch_short_name || cleanedCode,
-    companyName: addr.company_name || "",
-    customerCode: cleanedCode
-  } : null;
-}
-
-async function lookupProductMaster(barcode: string) {
-  if (!barcode) return null;
-  const cleanedBarcode = barcode.replace(/[^\d.]/g, "").trim();
-  if (cleanedBarcode.length < 13) return null;
-
-  const product = await db.query.prodcode.findFirst({
-    where: (p, { eq }) => eq(sql`TRIM(${p.ean_product_code})`, cleanedBarcode)
-  });
-
-  return product ? {
-    description: product.product_description || "",
-    barcode: product.ean_product_code || cleanedBarcode,
-    internalCode: product.product_code || ""
-  } : null;
-}
-
-// ============================================
-// 🛠️ Dispatcher & Formatting
-// ============================================
-
-function getParserByVendor(vendorCode: string): EDIParserModule {
-  const vCode = vendorCode.trim();
-  if (vCode === "983181") return BigCParser;
-  if (vCode === "231086") return CJParser;
-  if (vCode === "983927") return CentralParser;
-  return CJParser;
-}
-
-function formatDecimal(raw: string | null | undefined, dotPos: number): string {
-  if (!raw) return "0.00";
-  const cleaned = raw.replace(/[^\d.]/g, "").trim();
-  if (!cleaned || cleaned === "0") return "0.00";
-  const num = parseFloat(cleaned);
-  const divisor = Math.pow(10, dotPos);
-  return (num / divisor).toFixed(2);
-}
-
-function extractBuyerName(line: string): string {
-  const trimmed = line.trim();
-  let match = trimmed.match(/\d+\s+\d+\s+([A-Za-z0-9\u0E00-\u0E7F ]+)$/);
-  if (match && match[1]) return match[1].trim();
-  match = trimmed.match(/R\d+\s+([A-Za-z0-9\u0E00-\u0E7F ]+)$/);
-  if (match && match[1]) return match[1].trim();
-  return "";
-}
-
-// ============================================
-// 🚀 Main Intelligence Parser Pipeline
-// ============================================
-
-export async function parseEDIFileDelphi(buffer: Buffer, fileName: string, shouldClear: boolean = true) {
-  console.log(`\n🚀 [Strict Mapping Parser] เริ่มประมวลผล: ${fileName}`);
-
+export async function parseEDIFileDelphi(
+  buffer: Buffer,
+  fileName: string,
+  shouldClear: boolean = true,
+) {
   try {
     const text = iconv.decode(buffer, "cp874");
-    // 🧠 สำหรับ BigC/CJ เราจะเก็บแบบ Hex String เพื่อรักษาพิกัด Byte ให้แม่นยำ 100% ไม่โดน Encoding ดีด
-    const rawLinesBytePerfect = buffer.toString("hex").match(/.{1,674}/g) || []; // สมมติความยาวบรรทัดเฉลี่ย
-    // แต่เพื่อความชัวร์ เราจะแยกบรรทัดจาก Buffer จริงๆ
-    const rawBufferLines: string[] = [];
-    let start = 0;
-    for (let i = 0; i < buffer.length; i++) {
-      if (buffer[i] === 0x0a || buffer[i] === 0x0d) {
-        if (i > start) rawBufferLines.push(buffer.slice(start, i).toString("hex"));
-        if (buffer[i] === 0x0d && buffer[i+1] === 0x0a) i++;
-        start = i + 1;
-      }
-    }
-    
-    // 1. 🧠 Pre-scan ตรวจหาลูกค้า
-    const detectedVendor = await EDIPreProcessor.detectVendor(text);
-    console.log(`🔍 ตรวจพบรหัสห้าง: ${detectedVendor}`);
+    const lines = text.split(/\r?\n/);
 
-    // 2. 🧹 จัดระเบียบข้อความ
-    const rawLines = EDIPreProcessor.normalizeText(text);
-    const structuredLines = EDIPreProcessor.analyzeStructure(rawLines);
-
-    // 3. 💾 บันทึก Audit Staging (ใช้ Hex เพื่อความแม่นยำระดับไบต์)
-    if (detectedVendor === "983181") {
-      await insertRawLines({ fileName, lines: rawBufferLines, vendorCode: detectedVendor });
-    } else {
-      await insertRawLines({ fileName, lines: rawLines, vendorCode: detectedVendor });
-    }
-
-    // 4. 🚀 ใช้ Normalizer เฉพาะราย (กรณี Big C หรือ CJ) หรือ Pipeline ปกติ
-    if (detectedVendor === "983181") {
-       console.log("🎯 เข้าสู่โหมด BigC Binary Pipeline (Direct Buffer Mode)");
-       if (shouldClear) {
-         await db.delete(EDH_tmp);
-         await db.delete(EDL_tmp);
-       }
-       // 🛡️ ส่ง Buffer ดิบๆ เข้าไปหั่นที่ระดับไบต์เพื่อความแม่นยำ 100%
-       return await BigCNormalizer.processBuffer(buffer, fileName, detectedVendor);
-    }
-
-    if (detectedVendor === "231086") {
-       console.log("🎯 เข้าสู่โหมด CJ Strict Normalization");
-       if (shouldClear) {
-         await db.delete(EDH_tmp);
-         await db.delete(EDL_tmp);
-       }
-       return await CJNormalizer.processFromStaging(fileName);
-    }
-
-    // --- Pipeline ปกติสำหรับห้างอื่น ---
     if (shouldClear) {
-      await db.delete(EDH_tmp);
-      await db.delete(EDL_tmp);
+      await db.delete(EDH_temp);
+      await db.delete(EDL_temp);
     }
 
-    const detailMap = new Map<string, any>();
-    let currentCustomerPo = "";
-    let masterCustomer: any = null;
     let headerCount = 0;
+    let detailCount = 0;
 
-    const parser = getParserByVendor(detectedVendor);
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const S = line;
 
-    for (const lineObj of structuredLines) {
-      const { content, type } = lineObj;
-      
-      try {
-        if (type === "H") {
-          const raw = parser.extractH(content, detectedVendor);
-          currentCustomerPo = raw.customerPo;
+      if (S[0] === "H") {
+        let Customer_PO = "";
+        for (let i = 2; i <= 16; i++) { Customer_PO += S[i - 1] || ""; }
 
-          // 🔍 Enrichment: Lookup Customer Master Data
-          masterCustomer = await lookupCustomerMaster(detectedVendor);
-
-          await db.insert(EDH_tmp).values({
-            hType: "H",
-            customerPo: currentCustomerPo,
-            customerNum: masterCustomer?.shortName || detectedVendor,
-            buyerName: masterCustomer?.customerCode || detectedVendor, 
-            customerName: masterCustomer?.companyName || "",
-            datePo: raw.orderDate,
-            dateShip: raw.requestDate,
-            totalAmount: formatDecimal(raw.rawTotalAmount, 2),
-            fileName: fileName,
-          });
-          headerCount++;
+        let Customer_Num = "";
+        for (let i = 17; i <= 22; i++) { Customer_Num += S[i - 1] || ""; }
+        if (S.length >= 241) {
+          let SBuff_New = "";
+          for (let i = 227; i <= 241; i++) { SBuff_New += S[i - 1] || ""; }
+          Customer_Num = SBuff_New;
         }
-        else if (type === "D") {
-          const raw = parser.extractD(content, detectedVendor);
-          if (!raw) continue;
 
-          const productInfo = await lookupProductMaster(raw.barcode);
-          const unitPrice = formatDecimal(raw.unitPrice, 2);
-          const orderQty = formatDecimal(raw.orderQty, 0); 
-          
-          let netAmount = formatDecimal(raw.rawNetAmount || "0", 2);
-          if (netAmount === "0.00") {
-             netAmount = (parseFloat(unitPrice) * parseFloat(orderQty)).toFixed(2);
-          }
+        let Oder_Date = "";
+        for (let i = 23; i <= 30; i++) { Oder_Date += S[i - 1] || ""; }
 
-          const key = `${currentCustomerPo}|${raw.seqNum}`;
+        let Request_Date = "";
+        for (let i = 31; i <= 38; i++) { Request_Date += S[i - 1] || ""; }
 
-          detailMap.set(key, {
-            dType: "D",
-            customerPo: currentCustomerPo,
-            customerNum: masterCustomer?.customerCode || detectedVendor,
-            seqNum: raw.seqNum,
-            productName: productInfo?.description || raw.rawProductName, 
-            packSize: "CN", 
-            eanNum: productInfo?.barcode || raw.barcode, 
-            buyerProdCode: masterCustomer?.customerCode || detectedVendor,
-            vendorProdCode: raw.buyerProdCode || "", 
-            qtyOrder: orderQty,
-            priceUnit: unitPrice,
-            freeQty: formatDecimal(raw.freeQty, 0),
-            discount1: formatDecimal(raw.discountPct, 2),
-            discount2: formatDecimal(raw.discountAmt, 2),
-            totalAmount: netAmount, 
-            fileName: fileName,
-            checkNameOldProd: raw.rawProductName, 
-          });
+        let Order_Amount = "";
+        for (let i = 98; i <= 110; i++) { Order_Amount += S[i - 1] || ""; if (i === 108) Order_Amount += "."; }
+
+        await db.insert(EDH_temp).values({
+          H_Type: "H",
+          Customer_PO: Customer_PO.trim(), 
+          Customer_Num: Customer_Num.trim(),
+          Date_PO: Oder_Date.trim(),
+          Date_Ship: Request_Date.trim(),
+          Total_Amount: Order_Amount.trim() || "0.00",
+          File_Name: fileName,
+        });
+        headerCount++;
+
+      } else if (S[0] === "D") {
+        let Customer_PO = ""; 
+        for (let i = 2; i <= 16; i++) { Customer_PO += S[i - 1] || ""; }
+
+        let Line_Num = "";
+        for (let i = 23; i <= 25; i++) { Line_Num += S[i - 1] || ""; }
+
+        let Item_Num = ""; 
+        for (let i = 26; i <= 40; i++) { Item_Num += S[i - 1] || ""; }
+
+        let Item_Description = "";
+        for (let i = 41; i <= 85; i++) { Item_Description += S[i - 1] || ""; }
+
+        let Bar_Code_Item = "";
+        for (let i = 86; i <= 99; i++) { Bar_Code_Item += S[i - 1] || ""; }
+
+        let Unit_Price = "";
+        for (let i = 102; i <= 108; i++) { Unit_Price += S[i - 1] || ""; if (i === 106) Unit_Price += "."; }
+
+        let Order_Qty = ""; 
+        for (let i = 109; i <= 115; i++) { Order_Qty += S[i - 1] || ""; if (i === 73) Order_Qty += "."; } //73เท่านั้น
+
+        let Free_Oty = "";
+        for (let i = 116; i <= 122; i++) { Free_Oty += S[i - 1] || ""; if (i === 84) Free_Oty += "."; }//84เท่านั้น
+
+        let Net_Amount = ""; 
+        for (let i = 123; i <= 133; i++) { Net_Amount += S[i - 1] || ""; if (i === 131) Net_Amount += "."; }
+
+        let Discount_1 = "";
+        for (let i = 150; i <= 154; i++) { Discount_1 += S[i - 1] || ""; if (i === 152) Discount_1 += "."; }
+
+        let Discount_2 = "";
+        for (let i = 155; i <= 159; i++) { Discount_2 += S[i - 1] || ""; if (i === 157) Discount_2 += "."; }
+
+        let Discount_3 = "";
+        if (S.length >= 260) {
+          for (let i = 256; i <= 260; i++) { Discount_3 += S[i - 1] || ""; if (i === 258) Discount_3 += "."; }
         }
-        else if (type === "L") {
-          if (!parser.extractL) continue;
-          const rawL = parser.extractL(content, detectedVendor);
-          if (!rawL) continue;
 
-          const key = `${currentCustomerPo}|${rawL.seqNum}`;
-          const existing = detailMap.get(key);
-          if (existing) {
-             const qty = formatDecimal(rawL.qty, 2);
-             existing.qtyOrder = (parseFloat(existing.qtyOrder) + parseFloat(qty)).toFixed(2);
-          }
-        }
-      } catch (lineErr) {
-        console.error(`❌ ผิดพลาดที่บรรทัด ${lineObj.index}:`, lineErr);
-      }
-    }
-
-    const detailsToInsert = Array.from(detailMap.values());
-    if (detailsToInsert.length > 0) {
-      const chunkSize = 50;
-      for (let i = 0; i < detailsToInsert.length; i += chunkSize) {
-        await db.insert(EDL_tmp).values(detailsToInsert.slice(i, i + chunkSize));
+        await db.insert(EDL_temp).values({
+          Customer_PO: Customer_PO.trim(),
+          Line_Num: Line_Num.trim(),
+          Product_Name: Item_Description.trim(),
+          Item_Num: Item_Num.trim(),
+          EAN_Num: Bar_Code_Item.trim(),
+          Price_Unit: Unit_Price.trim() || "0.00",
+          Qty_Order: Order_Qty.trim() || "0",
+          Free_Qty: Free_Oty.trim() || "0",
+          Total_Amount: Net_Amount.trim() || "0.00",
+          Discount_1: Discount_1.trim() || "0.00",
+          Discount_2: Discount_2.trim() || "0.00",
+          Discount_3: Discount_3.trim() || "0.00",
+          File_Name: fileName,
+        });
+        detailCount++;
       }
     }
 
     revalidatePath("/");
-    return { success: true, headerCount, detailCount: detailsToInsert.length };
+    return { success: true, headerCount, detailCount };
   } catch (err) {
-    console.error("🚨 CRITICAL ERROR:", err);
+    console.error(err);
     return { success: false, error: String(err) };
   }
 }

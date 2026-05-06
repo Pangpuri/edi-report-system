@@ -29,9 +29,9 @@ export async function getProductMaster() {
     const data = rawData.map(item => ({
       ean_product_code: item.ean_product_code ?? "",
       product_description: item.product_description ?? "",
-      // สำคัญมาก: เปลี่ยนชื่อจาก product_code เป็น internal_product_code 
+      // สำคัญมาก: เปลี่ยนชื่อจาก id เป็น internal_product_code 
       // เพื่อให้ตรงกับที่ Frontend (useMasterData) รอรับอยู่ค่ะ
-      internal_product_code: item.product_code ?? "", 
+      internal_product_code: item.id ?? "", 
     }));
 
     return { success: true, data: data };

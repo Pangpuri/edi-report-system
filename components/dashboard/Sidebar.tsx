@@ -4,10 +4,8 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChevronLeft, ChevronRight, Menu, X,
-  Database, FileInput, Users, LayoutDashboard, 
-  Settings, Box, MapPin, Users2, Layers,
-  LogOut, ShieldCheck, FileText, AlertCircle,
-  CheckCircle2, RefreshCw
+  Box, MapPin, Users2, Layers,
+  LogOut, ShieldCheck, CheckCircle2
 } from "lucide-react";
 import { DashboardTab } from "@/app/edi";
 
@@ -52,14 +50,6 @@ export function Sidebar({ activeTab, setActiveTab, userRole, onSignOut }: Sideba
       items: [
         { id: "import", label: "นำเข้า และ จัดการ EDI", icon: Layers },
         { id: "processed-data", label: "ประวัติการนำเข้า AS400", icon: CheckCircle2 },
-      ]
-    },
-    {
-      title: "รายงาน",
-      items: [
-        { id: "po-preprint", label: "พิมพ์ใบสั่งซื้อ (PO)", icon: FileText },
-        { id: "abnormal-data", label: "ข้อมูลผิดปกติ", icon: AlertCircle },
-        { id: "product-mapping", label: "จับคู่รหัสสินค้า", icon: RefreshCw },
       ]
     },
     ...(userRole === "admin" ? [{

@@ -20,12 +20,12 @@ export async function uploadEdiAction(
 
   // ตรวจสอบเบื้องต้น
   if (!file || file.size === 0) {
-    return { success: false, message: "กรุณาเลือกไฟล์ .TXT ก่อนค่ะปัง" };
+    return { success: false, message: "กรุณาเลือกไฟล์ .TXT" };
   }
 
   // ตรวจสอบนามสกุลไฟล์
   if (!file.name.toLowerCase().endsWith(".txt")) {
-    return { success: false, message: "ระบบรองรับเฉพาะไฟล์ .TXT เท่านั้นนะ" };
+    return { success: false, message: "ระบบรองรับเฉพาะไฟล์ .TXT" };
   }
 
   try {
@@ -42,13 +42,13 @@ export async function uploadEdiAction(
 
     return { 
       success: true, 
-      message: `นำเข้าไฟล์ ${file.name} เรียบร้อยแล้วค่ะ!` 
+      message: `นำเข้าไฟล์ ${file.name} เรียบร้อยแล้ว` 
     };
   } catch (error) {
     console.error("Upload Error:", error);
     return { 
       success: false, 
-      message: "เกิดข้อผิดพลาดระหว่างนำเข้าข้อมูล ลองเช็คตำแหน่ง Byte อีกทีนะปัง" 
+      message: "เกิดข้อผิดพลาดระหว่างนำเข้าข้อมูล ลองเช็คตำแหน่ง Byte อีกทีครั้ง" 
     };
   }
 }

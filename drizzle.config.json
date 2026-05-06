@@ -1,0 +1,8 @@
+{
+  "dialect": "postgresql",
+  "schema": "./db/schema.ts",
+  "out": "./drizzle",
+  "dbCredentials": {
+    "url": "postgresql://postgres:004400@192.168.10.130:5432/admin_po?schema=public"
+  }
+}

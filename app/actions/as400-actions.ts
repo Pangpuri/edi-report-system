@@ -1,12 +1,18 @@
 "use server";
 
 import { db } from "@/db";
-import { EDH_tmp, as400_logs, EDL_tmp, customer, EDH_history, EDL_history } from "@/db/schema";
+import { 
+  EDH_temp, 
+  EDL_temp, 
+  TEDH, 
+  TEDL, 
+  as400_logs, 
+  customer 
+} from "@/db/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { checkSession } from "@/lib/auth-utils";
 
-// Helper: Trim string values in an object to ensure clean data transfer
 function trimFields<T extends object>(obj: T): T {
   const result = { ...obj } as any;
   for (const key in result) {
@@ -17,94 +23,69 @@ function trimFields<T extends object>(obj: T): T {
   return result;
 }
 
-/**
- * โอนข้อมูลเข้า AS/400 (Move Data Workflow)
- * 1. ดึงข้อมูลจาก tmp
- * 2. Trim ข้อมูลให้สะอาดครบถ้วน
- * 3. ย้ายเข้า history (ตารางถาวร)
- * 4. ลบออกจาก tmp
- */
 export async function upsertToAS400(headerId: number) {
   try {
     await checkSession();
 
-    // 1. ดึงข้อมูล Header จากตารางพัก
-    const header = await db.query.EDH_tmp.findFirst({
-      where: eq(EDH_tmp.id, headerId),
+    const header = await db.query.EDH_temp.findFirst({
+      where: eq(EDH_temp.id, headerId),
     });
 
     if (!header) {
       return { success: false, message: "ไม่พบข้อมูลใบสั่งซื้อในตารางพักข้อมูล" };
     }
 
-    // 2. ดึงข้อมูล Detail จากตารางพัก
-    const details = await db.query.EDL_tmp.findMany({
-      where: and(
-        eq(EDL_tmp.customerPo, header.customerPo ?? ""),
-        eq(EDL_tmp.fileName, header.fileName ?? "")
-      )
+    const details = await db.query.EDL_temp.findMany({
+      where: eq(EDL_temp.Customer_PO, header.Customer_PO ?? ""),
     });
 
-    // 3. เตรียมข้อมูลสำหรับ History (เน้น Trim ทุกฟิลด์ตามคำแนะนำ)
     const trimmedHeader = trimFields({
-      hType: header.hType,
-      customerPo: header.customerPo,
-      customerNum: header.customerNum,
-      customerName: header.customerName,
-      buyerName: header.buyerName,
-      datePo: header.datePo,
-      dateShip: header.dateShip,
-      totalAmount: header.totalAmount,
-      fileName: header.fileName,
-      as400Status: true,
-      as400ImportedAt: new Date(),
+      H_Type: header.H_Type || "H",
+      Customer_PO: header.Customer_PO,
+      Customer_Num: header.Customer_Num,
+      Customer_Name: header.Customer_Name,
+      Buyer_Name: header.Buyer_Name,
+      Date_PO: header.Date_PO,
+      Date_Ship: header.Date_Ship,
+      Total_Amount: header.Total_Amount,
+      File_Name: header.File_Name,
+      AS400_Status: true,
     });
 
-    // 4. ดำเนินการย้ายข้อมูลแบบ Transaction
     const result = await db.transaction(async (tx) => {
-      // 4.1 บันทึกลงตาราง Header History
-      const [newHistory] = await tx.insert(EDH_history).values(trimmedHeader).returning({ id: EDH_history.id });
+      const [newHistory] = await tx.insert(TEDH).values(trimmedHeader).returning({ id: TEDH.id });
       
-      // 4.2 บันทึกลงตาราง Detail History
       if (details.length > 0) {
-        const historyDetails = details.map(d => trimFields({
-          headerId: newHistory.id,
-          dType: d.dType,
-          customerPo: d.customerPo,
-          customerNum: d.customerNum,
-          seqNum: d.seqNum,
-          productName: d.productName,
-          packSize: d.packSize,
-          eanNum: d.eanNum,
-          buyerProdCode: d.buyerProdCode,
-          vendorProdCode: d.vendorProdCode,
-          qtyOrder: d.qtyOrder,
-          priceUnit: d.priceUnit,
-          freeQty: d.freeQty,
-          discount1: d.discount1,
-          discount2: d.discount2,
-          discount3: d.discount3,
-          totalAmount: d.totalAmount,
-          fileName: d.fileName,
+        const historyDetails = details.map((d, index) => trimFields({
+          Header_Id: newHistory.id,
+          D_Type: "D",
+          Customer_PO: d.Customer_PO,
+          Customer_Num: header.Customer_Num, // รหัสผู้ซื้อมาจาก Header ตามบรีฟ
+          Line_Num: d.Line_Num || (index + 1).toString(), 
+          Product_Name: d.Product_Name,
+          Pack_Size: "CN", 
+          EAN_Num: d.EAN_Num,
+          Buyer_Prod_Code: header.Customer_Num, 
+          Vendor_Prod_Code: d.Item_Num, // รหัสผู้ผลิต รับมาจาก Item_Num
+          Qty_Order: d.Qty_Order,
+          Price_Unit: d.Price_Unit,
+          Free_Qty: d.Free_Qty,
+          Discount_1: d.Discount_1,
+          Discount_2: d.Discount_2,
+          Discount_3: d.Discount_3,
+          Total_Amount: d.Total_Amount,
+          File_Name: d.File_Name || header.File_Name,
         }));
-        await tx.insert(EDL_history).values(historyDetails);
+        await tx.insert(TEDL).values(historyDetails);
       }
 
-      // 4.3 ลบ Log เก่าที่อ้างอิงตารางพัก
-      await tx.delete(as400_logs).where(eq(as400_logs.headerId, headerId));
+      await tx.delete(EDL_temp).where(eq(EDL_temp.Customer_PO, header.Customer_PO ?? ""));
+      await tx.delete(EDH_temp).where(eq(EDH_temp.id, headerId));
 
-      // 4.4 ลบข้อมูลออกจากตารางพักข้อมูล (EDL -> EDH)
-      await tx.delete(EDL_tmp).where(and(
-        eq(EDL_tmp.customerPo, header.customerPo ?? ""),
-        eq(EDL_tmp.fileName, header.fileName ?? "")
-      ));
-      await tx.delete(EDH_tmp).where(eq(EDH_tmp.id, headerId));
-
-      // 4.5 บันทึก Log ใหม่ที่อ้างอิง History ID
       await tx.insert(as400_logs).values({
         historyId: newHistory.id,
         status: "success",
-        errorMessage: `โอนข้อมูล PO ${header.customerPo} เข้า AS/400 และจัดเก็บประวัติถาวรเรียบร้อยแล้ว`,
+        errorMessage: `โอนข้อมูล PO ${header.Customer_PO} เข้า AS/400 และจัดเก็บประวัติเรียบร้อยแล้ว`,
       });
 
       return newHistory;
@@ -113,7 +94,7 @@ export async function upsertToAS400(headerId: number) {
     revalidatePath("/");
     return { 
       success: true, 
-      message: `โอนข้อมูลใบสั่งซื้อ ${header.customerPo} ไป AS/400 และล้างตารางพักข้อมูลสำเร็จ` 
+      message: `โอนข้อมูลใบสั่งซื้อ ${header.Customer_PO} ไป AS/400 สำเร็จ` 
     };
 
   } catch (error) {
@@ -125,20 +106,15 @@ export async function upsertToAS400(headerId: number) {
   }
 }
 
-/**
- * แก้ไขสถานะการนำเข้าในหน้าประวัติ (Toggle History Status)
- */
 export async function updateHistoryStatus(id: number, status: boolean) {
   try {
     await checkSession();
-    await db.update(EDH_history)
+    await db.update(TEDH)
       .set({ 
-        as400Status: status,
-        as400ImportedAt: status ? new Date() : null 
+        AS400_Status: status,
       })
-      .where(eq(EDH_history.id, id));
+      .where(eq(TEDH.id, id));
     
-    // บันทึก Log การเปลี่ยนสถานะ
     await db.insert(as400_logs).values({
       historyId: id,
       status: status ? "success" : "pending",
@@ -152,28 +128,22 @@ export async function updateHistoryStatus(id: number, status: boolean) {
   }
 }
 
-/**
- * ดำเนินการนำเข้าข้อมูลซ้ำจากประวัติ (Re-Transfer History)
- */
 export async function reTransferHistoryAction(historyId: number) {
   try {
     await checkSession();
     
-    const header = await db.query.EDH_history.findFirst({
-      where: eq(EDH_history.id, historyId)
+    const header = await db.query.TEDH.findFirst({
+      where: eq(TEDH.id, historyId)
     });
 
     if (!header) return { success: false, message: "ไม่พบข้อมูลประวัติ" };
 
-    // อัปเดตเวลาที่นำเข้าล่าสุด และตั้งเป็นสำเร็จ
-    await db.update(EDH_history)
+    await db.update(TEDH)
       .set({ 
-        as400Status: true,
-        as400ImportedAt: new Date() 
+        AS400_Status: true,
       })
-      .where(eq(EDH_history.id, historyId));
+      .where(eq(TEDH.id, historyId));
 
-    // บันทึก Log การนำเข้าซ้ำ
     await db.insert(as400_logs).values({
       historyId: historyId,
       status: "success",
@@ -181,37 +151,18 @@ export async function reTransferHistoryAction(historyId: number) {
     });
 
     revalidatePath("/");
-    return { success: true, message: `นำเข้าข้อมูล PO ${header.customerPo} ซ้ำสำเร็จ` };
+    return { success: true, message: `นำเข้าข้อมูล PO ${header.Customer_PO} ซ้ำสำเร็จ` };
   } catch (error) {
     return { success: false, message: "เกิดข้อผิดพลาดในการนำเข้าซ้ำ" };
   }
 }
 
-/**
- * ลบข้อมูลประวัติ (ลบทั้ง Header, Details และ Logs ในตาราง History)
- */
 export async function deleteImportedAction(headerIds: number[]) {
   try {
     await checkSession();
     if (headerIds.length === 0) return { success: false, message: "กรุณาเลือกรายการที่ต้องการลบ" };
 
-    for (const id of headerIds) {
-      // 1. หาข้อมูลจาก History
-      const historyHeader = await db.query.EDH_history.findFirst({
-        where: eq(EDH_history.id, id)
-      });
-
-      if (historyHeader) {
-        // 2. ลบ Logs ที่อ้างอิง History ID นี้
-        await db.delete(as400_logs).where(eq(as400_logs.historyId, id));
-        
-        // 3. ลบ Details จาก History
-        await db.delete(EDL_history).where(eq(EDL_history.headerId, id));
-        
-        // 4. ลบ Header จาก History
-        await db.delete(EDH_history).where(eq(EDH_history.id, id));
-      }
-    }
+    await db.delete(TEDH).where(inArray(TEDH.id, headerIds));
 
     revalidatePath("/");
     return { success: true, message: `ลบข้อมูลประวัติสำเร็จ ${headerIds.length} รายการ` };
@@ -222,30 +173,27 @@ export async function deleteImportedAction(headerIds: number[]) {
   }
 }
 
-/**
- * ดึงข้อมูลที่โอนเข้า AS/400 เรียบร้อยแล้ว (อ่านจาก History ถาวร)
- */
 export async function getImportedAS400Data() {
   try {
     const results = await db.select({
-      id: EDH_history.id,
-      hType: EDH_history.hType,
-      customerPo: EDH_history.customerPo,
-      customerNum: EDH_history.customerNum,
+      id: TEDH.id,
+      hType: TEDH.H_Type,
+      customerPo: TEDH.Customer_PO,
+      customerNum: TEDH.Customer_Num,
       customerName: customer.company_name, 
       shortName: customer.short_name,    
       buyerName: customer.customer_code,  
-      datePo: EDH_history.datePo,
-      dateShip: EDH_history.dateShip,
-      totalAmount: EDH_history.totalAmount,
-      fileName: EDH_history.fileName,
-      as400Status: EDH_history.as400Status,
-      as400ImportedAt: EDH_history.as400ImportedAt,
-      createdAt: EDH_history.createdAt,
+      datePo: TEDH.Date_PO,
+      dateShip: TEDH.Date_Ship,
+      totalAmount: TEDH.Total_Amount,
+      fileName: TEDH.File_Name,
+      as400Status: TEDH.AS400_Status,
+      as400ImportedAt: TEDH.AS400_Imported_At,
+      createdAt: TEDH.Created_At,
     })
-    .from(EDH_history)
-    .leftJoin(customer, eq(EDH_history.customerNum, customer.customer_code))
-    .orderBy(desc(EDH_history.as400ImportedAt));
+    .from(TEDH)
+    .leftJoin(customer, eq(TEDH.Customer_Num, customer.customer_code))
+    .orderBy(desc(TEDH.Created_At));
 
     return results;
   } catch (error) {
@@ -254,20 +202,34 @@ export async function getImportedAS400Data() {
   }
 }
 
-/**
- * ดึงรายละเอียดสินค้าจาก History ตาม Header IDs
- */
 export async function getEDLHistoryByHeadersAction(items: { customerPo: string; fileName: string }[]) {
   try {
     if (items.length === 0) return [];
 
-    const results = await db.select()
-      .from(EDL_history)
+    const results = await db.select({
+      id: TEDL.id,
+      customerPo: TEDL.Customer_PO,
+      customerNum: TEDL.Customer_Num,
+      seqNum: TEDL.Line_Num,
+      productName: TEDL.Product_Name,
+      packSize: TEDL.Pack_Size,
+      eanNum: TEDL.EAN_Num,
+      buyerProdCode: TEDL.Buyer_Prod_Code,
+      vendorProdCode: TEDL.Vendor_Prod_Code,
+      orderQty: TEDL.Qty_Order,
+      unitPrice: TEDL.Price_Unit,
+      freeQty: TEDL.Free_Qty,
+      discount1: TEDL.Discount_1,
+      discount2: TEDL.Discount_2,
+      discount3: TEDL.Discount_3,
+      totalAmount: TEDL.Total_Amount,
+      fileName: TEDL.File_Name,
+    })
+      .from(TEDL)
       .where(
-        sql`(${EDL_history.customerPo}, ${EDL_history.fileName}) IN ${sql.raw(
-          `(${items.map(i => `('${i.customerPo}', '${i.fileName}')`).join(',')})`
-        )}`
-      );
+        inArray(TEDL.Customer_PO, items.map(i => i.customerPo))
+      )
+      .orderBy(sql`CAST(${TEDL.Line_Num} AS INTEGER)`);
 
     return results;
   } catch (error) {
@@ -276,9 +238,6 @@ export async function getEDLHistoryByHeadersAction(items: { customerPo: string; 
   }
 }
 
-/**
- * 🔥 ดึง Logs ตาม History ID (รองรับหลาย ID)
- */
 export async function getAS400LogsByHistoryIds(historyIds: number[]) {
   try {
     if (!historyIds.length) return [];
@@ -295,26 +254,6 @@ export async function getAS400LogsByHistoryIds(historyIds: number[]) {
   }
 }
 
-/**
- * 🔥 ดึง Logs ตาม History ID เดียว
- */
-export async function getAS400LogsByHistoryId(historyId: number) {
-  try {
-    const logs = await db.select()
-      .from(as400_logs)
-      .where(eq(as400_logs.historyId, historyId))
-      .orderBy(desc(as400_logs.createdAt));
-    
-    return logs;
-  } catch (error) {
-    console.error("Fetch AS400 Logs Error:", error);
-    return [];
-  }
-}
-
-/**
- * 🔥 ดึง Logs ล่าสุดทั้งหมด (สำหรับ Admin)
- */
 export async function getAllAS400Logs(limit: number = 100) {
   try {
     const logs = await db.select()

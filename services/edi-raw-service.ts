@@ -8,10 +8,7 @@ interface RawLineInput {
   vendorCode?: string;
 }
 
-/**
- * ฟังก์ชันสำหรับการ Bulk Insert ข้อมูลดิบลงตาราง edi_raw_staging
- * ⚠️ สำคัญ: ห้ามทำการ .trim() ข้อมูลใน lineContent เด็ดขาด
- */
+/// ฟังก์ชันสำหรับบันทึกข้อมูลดิบจากไฟล์ EDI ลงในตาราง staging
 export async function insertRawLines({ fileName, lines, vendorCode }: RawLineInput) {
   if (!lines || lines.length === 0) return { success: false, count: 0 };
 
@@ -28,16 +25,16 @@ export async function insertRawLines({ fileName, lines, vendorCode }: RawLineInp
 
     return {
       fileName,
-      lineContent: content, // บันทึกแบบดิบๆ ไม่ trim
+      lineContent: content, 
       lineType,
-      lineNumber: index + 1, // เริ่มนับจาก 1 ตามลำดับจริงในไฟล์
+      lineNumber: index + 1, 
       vendorCode: vendorCode || null,
       status: "PENDING",
     };
   });
 
   try {
-    // แบ่งกลุ่ม Insert ทีละ 200 รายการเพื่อความเสถียร
+    
     const chunkSize = 200;
     for (let i = 0; i < dataToInsert.length; i += chunkSize) {
       const chunk = dataToInsert.slice(i, i + chunkSize);

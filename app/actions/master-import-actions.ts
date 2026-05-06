@@ -154,15 +154,15 @@ export async function importProductMaster() {
       if (!internal) continue;
 
       dataToInsert.push({
+        id: internal, // แมป InternalCode -> id (Primary Key)
         ean_product_code: ean,
         product_description: desc,
-        product_code: internal, // ต้องตรงกับชื่อใน schema.ts
       });
     }
 
     if (dataToInsert.length > 0) {
       await db.insert(prodcode).values(dataToInsert).onConflictDoUpdate({
-        target: prodcode.product_code,
+        target: prodcode.id,
         set: {
           ean_product_code: sql`excluded.ean_product_code`,
           product_description: sql`excluded.product_description`,

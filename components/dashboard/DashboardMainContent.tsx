@@ -4,11 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SlideBarTab, TabType, MasterData, ViewMode } from "@/app/edi";
 import { UserManagement } from "@/components/dashboard/UserManagement";
 import { ImportAS400 } from "@/components/dashboard/Import_H_D_data";
-import { StagingArea } from "@/components/dashboard/StagingArea";
-import { POPrePrint } from "@/components/dashboard/POPrePrint";
-import { AbnormalData } from "@/components/dashboard/AbnormalData";
-import { ProcessedData } from "@/components/dashboard/ProcessedData";
-import { ProductMapping } from "@/components/dashboard/ProductMapping";
+import { AS400History } from "@/components/dashboard/AS400_History";
 import { MasterDataTable } from "@/components/MasterDataTable";
 import { AddCustomerForm } from "@/components/forms/AddCustomerForm";
 import { AddAddressForm } from "@/components/forms/AddAddressForm";
@@ -83,11 +79,7 @@ export function DashboardMainContent({
               </div>
             ) : activeTab === "users" ? <UserManagement />
               : activeTab === "import" ? <ImportAS400 />
-              : activeTab === "staging" ? <StagingArea />
-              : activeTab === "po-preprint" ? <POPrePrint />
-              : activeTab === "abnormal-data" ? <AbnormalData />
-              : activeTab === "processed-data" ? <ProcessedData />
-              : activeTab === "product-mapping" ? <ProductMapping />
+              : activeTab === "processed-data" ? <AS400History />
               : (
               <div className="bg-ui-card p-4 md:p-6 rounded-xl border border-ui-border shadow-lg min-h-[600px] flex flex-col relative overflow-hidden text-ui-text">
                 <MasterDataTable 

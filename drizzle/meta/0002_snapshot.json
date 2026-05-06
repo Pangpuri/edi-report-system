@@ -1,11 +1,11 @@
 {
-  "id": "ff46e5f5-d0fc-491c-b07f-684c5e718b0a",
-  "prevId": "21fb2869-815c-4c51-a24a-01c7ffdd81f3",
+  "id": "085b605f-9e0e-4a40-980a-dc47b00c8b1a",
+  "prevId": "2b19658c-3f1a-4cab-8377-63bccef1faa6",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.EDH_history": {
-      "name": "EDH_history",
+    "public.EDH_tmp": {
+      "name": "EDH_tmp",
       "schema": "",
       "columns": {
         "id": {
@@ -14,76 +14,62 @@
           "primaryKey": true,
           "notNull": true
         },
-        "h_type": {
-          "name": "h_type",
+        "H_Type": {
+          "name": "H_Type",
           "type": "varchar(1)",
           "primaryKey": false,
           "notNull": false
         },
-        "customer_po": {
-          "name": "customer_po",
+        "Customer_PO": {
+          "name": "Customer_PO",
           "type": "varchar(25)",
           "primaryKey": false,
           "notNull": false
         },
-        "customer_num": {
-          "name": "customer_num",
+        "Customer_Num": {
+          "name": "Customer_Num",
           "type": "varchar(20)",
           "primaryKey": false,
           "notNull": false
         },
-        "customer_name": {
-          "name": "customer_name",
+        "Customer_Name": {
+          "name": "Customer_Name",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "buyer_name": {
-          "name": "buyer_name",
+        "Buyer_Name": {
+          "name": "Buyer_Name",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "date_po": {
-          "name": "date_po",
+        "Date_PO": {
+          "name": "Date_PO",
           "type": "varchar(10)",
           "primaryKey": false,
           "notNull": false
         },
-        "date_ship": {
-          "name": "date_ship",
+        "Date_Ship": {
+          "name": "Date_Ship",
           "type": "varchar(10)",
           "primaryKey": false,
           "notNull": false
         },
-        "total_amount": {
-          "name": "total_amount",
+        "Total_Amount": {
+          "name": "Total_Amount",
           "type": "numeric(12, 2)",
           "primaryKey": false,
           "notNull": false
         },
-        "file_name": {
-          "name": "file_name",
+        "File_Name": {
+          "name": "File_Name",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         },
-        "as400_status": {
-          "name": "as400_status",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": true
-        },
-        "as400_imported_at": {
-          "name": "as400_imported_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        },
-        "created_at": {
-          "name": "created_at",
+        "Created_At": {
+          "name": "Created_At",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
@@ -98,8 +84,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.EDH_tmp": {
-      "name": "EDH_tmp",
+    "public.EDL_tmp": {
+      "name": "EDL_tmp",
       "schema": "",
       "columns": {
         "id": {
@@ -108,85 +94,177 @@
           "primaryKey": true,
           "notNull": true
         },
-        "h_type": {
-          "name": "h_type",
-          "type": "varchar(1)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "customer_po": {
-          "name": "customer_po",
+        "Customer_PO": {
+          "name": "Customer_PO",
           "type": "varchar(25)",
           "primaryKey": false,
           "notNull": false
         },
-        "customer_num": {
-          "name": "customer_num",
+        "Line_Num": {
+          "name": "Line_Num",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Item_Num": {
+          "name": "Item_Num",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Product_Name": {
+          "name": "Product_Name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "EAN_Num": {
+          "name": "EAN_Num",
           "type": "varchar(20)",
           "primaryKey": false,
           "notNull": false
         },
-        "customer_name": {
-          "name": "customer_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "buyer_name": {
-          "name": "buyer_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "date_po": {
-          "name": "date_po",
-          "type": "varchar(10)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "date_ship": {
-          "name": "date_ship",
-          "type": "varchar(10)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "total_amount": {
-          "name": "total_amount",
+        "Price_Unit": {
+          "name": "Price_Unit",
           "type": "numeric(12, 2)",
           "primaryKey": false,
           "notNull": false
         },
-        "file_name": {
-          "name": "file_name",
+        "Qty_Order": {
+          "name": "Qty_Order",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Free_Qty": {
+          "name": "Free_Qty",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Total_Amount": {
+          "name": "Total_Amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Discount_1": {
+          "name": "Discount_1",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Discount_2": {
+          "name": "Discount_2",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Discount_3": {
+          "name": "Discount_3",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "File_Name": {
+          "name": "File_Name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.EDH_history": {
+      "name": "EDH_history",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "H_Type": {
+          "name": "H_Type",
+          "type": "varchar(1)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Customer_PO": {
+          "name": "Customer_PO",
+          "type": "varchar(25)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Customer_Num": {
+          "name": "Customer_Num",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Customer_Name": {
+          "name": "Customer_Name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Buyer_Name": {
+          "name": "Buyer_Name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Date_PO": {
+          "name": "Date_PO",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Date_Ship": {
+          "name": "Date_Ship",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Total_Amount": {
+          "name": "Total_Amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "File_Name": {
+          "name": "File_Name",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         },
-        "as400_status": {
-          "name": "as400_status",
+        "AS400_Status": {
+          "name": "AS400_Status",
           "type": "boolean",
           "primaryKey": false,
           "notNull": false,
-          "default": false
+          "default": true
         },
-        "as400_imported_at": {
-          "name": "as400_imported_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
+        "AS400_Imported_At": {
+          "name": "AS400_Imported_At",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
         },
-        "raw_line_id": {
-          "name": "raw_line_id",
-          "type": "integer",
+        "Created_At": {
+          "name": "Created_At",
+          "type": "timestamp",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -207,116 +285,140 @@
           "primaryKey": true,
           "notNull": true
         },
-        "header_id": {
-          "name": "header_id",
+        "Header_Id": {
+          "name": "Header_Id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
-        "d_type": {
-          "name": "d_type",
+        "D_Type": {
+          "name": "D_Type",
           "type": "varchar(1)",
           "primaryKey": false,
           "notNull": false
         },
-        "customer_po": {
-          "name": "customer_po",
+        "Customer_PO": {
+          "name": "Customer_PO",
           "type": "varchar(25)",
           "primaryKey": false,
           "notNull": false
         },
-        "customer_num": {
-          "name": "customer_num",
+        "Customer_Num": {
+          "name": "Customer_Num",
           "type": "varchar(20)",
           "primaryKey": false,
           "notNull": false
         },
-        "seq_num": {
-          "name": "seq_num",
-          "type": "varchar(5)",
+        "Line_Num": {
+          "name": "Line_Num",
+          "type": "varchar(10)",
           "primaryKey": false,
           "notNull": false
         },
-        "product_name": {
-          "name": "product_name",
+        "Product_Name": {
+          "name": "Product_Name",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "pack_size": {
-          "name": "pack_size",
+        "Pack_Size": {
+          "name": "Pack_Size",
           "type": "varchar(50)",
           "primaryKey": false,
           "notNull": false
         },
-        "ean_num": {
-          "name": "ean_num",
+        "EAN_Num": {
+          "name": "EAN_Num",
           "type": "varchar(20)",
           "primaryKey": false,
           "notNull": false
         },
-        "buyer_prod_code": {
-          "name": "buyer_prod_code",
+        "Buyer_Prod_Code": {
+          "name": "Buyer_Prod_Code",
           "type": "varchar(30)",
           "primaryKey": false,
           "notNull": false
         },
-        "vendor_prod_code": {
-          "name": "vendor_prod_code",
+        "Vendor_Prod_Code": {
+          "name": "Vendor_Prod_Code",
           "type": "varchar(30)",
           "primaryKey": false,
           "notNull": false
         },
-        "qty_order": {
-          "name": "qty_order",
+        "Qty_Order": {
+          "name": "Qty_Order",
           "type": "numeric(12, 2)",
           "primaryKey": false,
           "notNull": false
         },
-        "price_unit": {
-          "name": "price_unit",
+        "Price_Unit": {
+          "name": "Price_Unit",
           "type": "numeric(12, 2)",
           "primaryKey": false,
           "notNull": false
         },
-        "free_qty": {
-          "name": "free_qty",
+        "Free_Qty": {
+          "name": "Free_Qty",
           "type": "numeric(12, 2)",
           "primaryKey": false,
           "notNull": false
         },
-        "discount_1": {
-          "name": "discount_1",
+        "Discount_1": {
+          "name": "Discount_1",
           "type": "numeric(12, 2)",
           "primaryKey": false,
           "notNull": false
         },
-        "discount_2": {
-          "name": "discount_2",
+        "Discount_2": {
+          "name": "Discount_2",
           "type": "numeric(12, 2)",
           "primaryKey": false,
           "notNull": false
         },
-        "discount_3": {
-          "name": "discount_3",
+        "Discount_3": {
+          "name": "Discount_3",
           "type": "numeric(12, 2)",
           "primaryKey": false,
           "notNull": false
         },
-        "total_amount": {
-          "name": "total_amount",
+        "Total_Amount": {
+          "name": "Total_Amount",
           "type": "numeric(12, 2)",
           "primaryKey": false,
           "notNull": false
         },
-        "file_name": {
-          "name": "file_name",
+        "File_Name": {
+          "name": "File_Name",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         },
-        "created_at": {
-          "name": "created_at",
+        "Check_Bar_In": {
+          "name": "Check_Bar_In",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Check_Name_Old_Prod": {
+          "name": "Check_Name_Old_Prod",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Change_Item": {
+          "name": "Change_Item",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Change_Prod_Name": {
+          "name": "Change_Prod_Name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "Created_At": {
+          "name": "Created_At",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
@@ -325,12 +427,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "EDL_history_header_id_EDH_history_id_fk": {
-          "name": "EDL_history_header_id_EDH_history_id_fk",
+        "EDL_history_Header_Id_EDH_history_id_fk": {
+          "name": "EDL_history_Header_Id_EDH_history_id_fk",
           "tableFrom": "EDL_history",
           "tableTo": "EDH_history",
           "columnsFrom": [
-            "header_id"
+            "Header_Id"
           ],
           "columnsTo": [
             "id"
@@ -339,157 +441,6 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.EDL_tmp": {
-      "name": "EDL_tmp",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "d_type": {
-          "name": "d_type",
-          "type": "varchar(1)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "customer_po": {
-          "name": "customer_po",
-          "type": "varchar(25)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "customer_num": {
-          "name": "customer_num",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "seq_num": {
-          "name": "seq_num",
-          "type": "varchar(5)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "product_name": {
-          "name": "product_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pack_size": {
-          "name": "pack_size",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ean_num": {
-          "name": "ean_num",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "buyer_prod_code": {
-          "name": "buyer_prod_code",
-          "type": "varchar(30)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "vendor_prod_code": {
-          "name": "vendor_prod_code",
-          "type": "varchar(30)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "qty_order": {
-          "name": "qty_order",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "price_unit": {
-          "name": "price_unit",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "free_qty": {
-          "name": "free_qty",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "discount_1": {
-          "name": "discount_1",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "discount_2": {
-          "name": "discount_2",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "discount_3": {
-          "name": "discount_3",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "total_amount": {
-          "name": "total_amount",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "file_name": {
-          "name": "file_name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "check_bar_int": {
-          "name": "check_bar_int",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "check_name_old_prod": {
-          "name": "check_name_old_prod",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "change_item": {
-          "name": "change_item",
-          "type": "varchar(30)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "change_prod_name": {
-          "name": "change_prod_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "raw_line_id": {
-          "name": "raw_line_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -611,12 +562,6 @@
           "primaryKey": true,
           "notNull": true
         },
-        "header_id": {
-          "name": "header_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "history_id": {
           "name": "history_id",
           "type": "integer",
@@ -683,19 +628,19 @@
         },
         "branch_code": {
           "name": "branch_code",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ip_address": {
-          "name": "ip_address",
           "type": "varchar(50)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "source_path": {
           "name": "source_path",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "varchar(50)",
           "primaryKey": false,
           "notNull": false
         },
@@ -707,7 +652,7 @@
         },
         "password": {
           "name": "password",
-          "type": "text",
+          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": false
         },
@@ -1032,13 +977,13 @@
         },
         "file_name": {
           "name": "file_name",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "status": {
           "name": "status",
-          "type": "varchar(20)",
+          "type": "varchar(50)",
           "primaryKey": false,
           "notNull": false
         },
@@ -1048,8 +993,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "processed_at": {
-          "name": "processed_at",
+        "created_at": {
+          "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
@@ -1082,6 +1027,12 @@
       "name": "prodcode",
       "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(50)",
+          "primaryKey": true,
+          "notNull": true
+        },
         "ean_product_code": {
           "name": "ean_product_code",
           "type": "varchar(50)",
@@ -1093,12 +1044,6 @@
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
-        },
-        "id": {
-          "name": "id",
-          "type": "varchar(50)",
-          "primaryKey": true,
-          "notNull": true
         }
       },
       "indexes": {},
@@ -1158,21 +1103,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "raw_file_archives_branch_id_branches_id_fk": {
-          "name": "raw_file_archives_branch_id_branches_id_fk",
-          "tableFrom": "raw_file_archives",
-          "tableTo": "branches",
-          "columnsFrom": [
-            "branch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -1266,17 +1197,23 @@
       "name": "system_configs",
       "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
         "config_key": {
           "name": "config_key",
-          "type": "varchar(50)",
-          "primaryKey": true,
+          "type": "varchar(100)",
+          "primaryKey": false,
           "notNull": true
         },
         "config_value": {
           "name": "config_value",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "description": {
           "name": "description",
@@ -1295,7 +1232,15 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "system_configs_config_key_unique": {
+          "name": "system_configs_config_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "config_key"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

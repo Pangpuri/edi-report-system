@@ -4,37 +4,28 @@ import { useState, useEffect, useCallback, useMemo, useTransition } from "react"
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   FileText, CheckCircle2, 
-  ArrowRight, Search, RefreshCw, Loader2,
-  Database, Layers, MousePointer2,
-  Trash2, Globe, ChevronRight, Home, Settings, FileInput, Download,
-  FolderOpen, ClipboardCheck, Printer, AlertTriangle
+  Search, RefreshCw, Loader2,
+  MousePointer2,
+  Trash2, Globe, FileInput, Download,
+  ClipboardCheck, Printer, AlertTriangle
 } from "lucide-react";
 import { 
   processImportAS400, 
   getEDHData, 
   getEDLByHeadersAction,
-  getBranchesAction,
   getStagingFilesAction,
   deleteAS400FileAction,
   getRawFileArchivesAction,
   deleteRawArchiveAction,
   clearTempTablesAction
 } from "@/app/actions/as400-import";
+// ดึงลอจิกการโอนข้อมูลจากไฟล์ Action แยกต่างหาก
 import { upsertToAS400, deleteImportedAction } from "@/app/actions/as400-actions";
 import { useSession } from "@/lib/auth-client";
 import { SessionUser } from "@/app/edi";
 import { useToast } from "@/components/ToastProvider";
 
 // --- Types ---
-interface Branch {
-  id: number;
-  branchName: string;
-  branchCode: string;
-  sourcePath: string | null;
-  ipAddress?: string | null;
-  username?: string | null;
-  password?: string | null;
-}
 
 interface StagingFile {
   name: string;
@@ -67,17 +58,18 @@ interface EDLData {
   seqNum: string | null;
   eanNum: string | null;
   productName: string | null;
-  qtyOrder: string | null;
-  priceUnit: string | null;
+  orderQty: string | number | null;
+  unitPrice: string | number | null;
   fileName: string | null;
+  unitMeasure: string | null;
   packSize: string | null;
   buyerProdCode: string | null;
   vendorProdCode: string | null;
-  freeQty: string | null;
-  discount1: string | null;
-  discount2: string | null;
-  discount3: string | null;
-  totalAmount: string | null;
+  freeQty: string | number | null;
+  discount1: string | number | null;
+  discount2: string | number | null;
+  discount3: string | number | null;
+  totalAmount: string | number | null;
   checkBarInt: string | null;
   checkNameOldProd: string | null;
   changeItem: string | null;
@@ -95,6 +87,7 @@ interface RawArchive {
 
 type TabType = "import" | "staging" | "data_view" | "archives";
 
+// --- เริ่มต้น Component หลักสำหรับหน้า Import ---
 export function ImportAS400() {
   const { showToast } = useToast();
   const { data: session } = useSession();
@@ -109,9 +102,16 @@ export function ImportAS400() {
     return user?.role?.toLowerCase() === "admin";
   }, [session]);
 
-  const [activeTab, setActiveTab] = useState<TabType>("import");
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+  // --- ชุดตัวแปร (States) สำหรับคุมการแสดงผลในหน้าจอ ---
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("import_active_tab");
+      if (saved && ["import", "staging", "data_view", "archives"].includes(saved)) {
+        return saved as TabType;
+      }
+    }
+    return "import";
+  });
   const [stagingFiles, setStagingFiles] = useState<StagingFile[]>([]);
   const [rawArchives, setRawArchives] = useState<RawArchive[]>([]);
   const [archiveSearch, setArchiveSearch] = useState("");
@@ -126,14 +126,15 @@ export function ImportAS400() {
     fileName?: string;
   } | null>(null);
 
-  // Optimization State
+  // ตัวแปรสำหรับเก็บข้อมูล Detail ในหน่วยความจำ (ช่วยให้เปลี่ยนไปมาไม่ต้องโหลดซ้ำบ่อย)
   const [isPending, startTransition] = useTransition();
   const [detailCache, setDetailCache] = useState<Record<string, EDLData[]>>({});
 
-  // Table Column Widths (State for Resizable Columns)
+  // เก็บขนาดความกว้างของคอลัมน์ตาราง (เผื่อผู้ใช้ลากปรับขนาด)
   const [headerWidths, setHeaderWidths] = useState<Record<string, number>>({});
   const [detailWidths, setDetailWidths] = useState<Record<string, number>>({});
 
+  // ฟังก์ชันลอจิกตอนลากปรับขนาดคอลัมน์
   const handleResize = (table: 'header' | 'detail', column: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -172,14 +173,19 @@ export function ImportAS400() {
     document.addEventListener('mouseup', onMouseUp);
   };
 
-  // Master-Detail State
+  // บันทึกสถานะ Tab ลง LocalStorage เมื่อมีการเปลี่ยน เพื่อให้คงสถานะไว้แม้ Refresh หน้าจอ
+  useEffect(() => {
+    localStorage.setItem("import_active_tab", activeTab);
+  }, [activeTab]);
+
+  // ข้อมูลตารางบน (Header) และ ตารางล่าง (Detail)
   const [headerData, setHeaderData] = useState<EDHData[]>([]);
   const [selectedHeaders, setSelectedHeaders] = useState<EDHData[]>([]);
   const [detailData, setDetailData] = useState<EDLData[]>([]);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
 
-  // Load Initial Data
+  // ฟังก์ชันโหลดข้อมูลเริ่มต้นทั้งหมด (เรียกใช้ตอนเปิดหน้า หรือตอน Refresh)
   const initData = useCallback(async () => {
     const hData = await getEDHData();
     setHeaderData(hData as unknown as EDHData[]);
@@ -195,6 +201,7 @@ export function ImportAS400() {
     initData();
   }, [initData]);
 
+  // ลอจิกตอนอัปโหลดไฟล์จากคอมพิวเตอร์เข้า Server
   const processUpload = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
 
@@ -229,6 +236,7 @@ export function ImportAS400() {
     if (e.dataTransfer.files) processUpload(e.dataTransfer.files);
   };
 
+  // ฟังก์ชันกดนำเข้าไฟล์ทีละไฟล์
   const handleProcessFile = async (fileName: string) => {
     setIsImporting(true);
     try {
@@ -249,6 +257,7 @@ export function ImportAS400() {
     }
   };
 
+  // ฟังก์ชันโหลดข้อมูลรายการสินค้า (Detail) โดยรองรับการเลือกทีละหลายๆ PO
   const fetchMultipleDetails = async (headers: EDHData[]) => {
     if (headers.length === 0) {
       setDetailData([]);
@@ -277,7 +286,10 @@ export function ImportAS400() {
 
         // Combine from updated cache and deduplicate by id to prevent key errors
         const allDetailsRaw = headers.flatMap(h => updatedCache[`${h.customerPo}|${h.fileName}`] || []);
-        const allDetails = Array.from(new Map(allDetailsRaw.map(d => [d.id, d])).values());
+        const allDetails = Array.from(new Map(allDetailsRaw.map(d => [d.id, d])).values())
+          .sort((a, b) => 
+            (a.seqNum ?? "").localeCompare(b.seqNum ?? "", undefined, { numeric: true, sensitivity: 'base' })
+          );
         
         startTransition(() => {
           setDetailData(allDetails);
@@ -290,7 +302,10 @@ export function ImportAS400() {
     } else {
       // All in cache - Combine and deduplicate
       const allDetailsRaw = headers.flatMap(h => detailCache[`${h.customerPo}|${h.fileName}`] || []);
-      const allDetails = Array.from(new Map(allDetailsRaw.map(d => [d.id, d])).values());
+      const allDetails = Array.from(new Map(allDetailsRaw.map(d => [d.id, d])).values())
+        .sort((a, b) => 
+          (a.seqNum ?? "").localeCompare(b.seqNum ?? "", undefined, { numeric: true, sensitivity: 'base' })
+        );
       
       startTransition(() => {
         setDetailData(allDetails);
@@ -298,6 +313,7 @@ export function ImportAS400() {
     }
   };
 
+  // ปุ่ม "Filter & Import" สำหรับประมวลผลไฟล์ที่เลือกจาก Staging
   const handleProcessSelected = async () => {
     if (selectedStaging.length === 0) {
       showToast("กรุณาเลือกไฟล์ที่ต้องการนำเข้า", "error");
@@ -340,6 +356,7 @@ export function ImportAS400() {
     setActiveTab("data_view");
   };
 
+  // ลอจิกการลบไฟล์ที่เลือกออกจาก Staging
   const executeDeleteSelected = async () => {
     if (selectedStaging.length === 0) return;
 
@@ -371,6 +388,7 @@ export function ImportAS400() {
     setStagingDeleteTarget(null);
   };
 
+  // ปุ่มกดยืนยันการลบ (แสดงใน Popup)
   const handleConfirmDelete = async () => {
     if (!stagingDeleteTarget) return;
     if (stagingDeleteTarget.type === "multiple") {
@@ -388,6 +406,7 @@ export function ImportAS400() {
     }
   };
 
+  // จัดการเรื่องการลบไฟล์ในหน้า Archives (ประวัติไฟล์ดิบ)
   const handleDeleteArchive = async (id: number, name: string) => {
     if (!confirm(`ยืนยันการลบไฟล์สำรอง ${name} ออกจากระบบถาวร?`)) return;
     setIsImporting(true);
@@ -438,6 +457,7 @@ export function ImportAS400() {
     }
   };
 
+  // ลอจิกการเลือกบรรทัดในตาราง Master
   const handleSelectHeader = (header: EDHData) => {
     const isSelected = selectedHeaders.some(h => h.id === header.id);
     const next = isSelected 
@@ -458,6 +478,7 @@ export function ImportAS400() {
     }
   };
 
+  // ปุ่มกดโอนข้อมูลที่ตรวจสอบแล้วเข้าสู่ระบบ AS/400 (ย้ายจาก Temp ไป History)
   const handleTransferToAS400 = async () => {
     if (selectedHeaders.length === 0) {
       showToast("กรุณาเลือกรายการใบสั่งซื้อที่ต้องการโอน", "error");
@@ -494,7 +515,7 @@ export function ImportAS400() {
   return (
     <div className="bg-ui-card p-4 md:p-6 rounded-xl border border-ui-border shadow-lg min-h-[600px] flex flex-col relative overflow-hidden text-ui-text">
       
-      {/* Loading Overlay */}
+      {/* หน้ากากตอนกำลังโหลด (Loading Overlay) */}
       <AnimatePresence>
         {(isImporting || isSavingConfig || isTransferring) && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-ui-card/80 backdrop-blur-sm flex flex-col items-center justify-center">
@@ -506,7 +527,7 @@ export function ImportAS400() {
         )}
       </AnimatePresence>
 
-      {/* Main Header */}
+      {/* ส่วนหัวของหน้าจอ (ชื่อโมดูลและปุ่มเลือก Tab) */}
       <div className="flex flex-col lg:flex-row justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-brand-primary/10 rounded-lg text-brand-primary border border-brand-primary/20">
@@ -537,7 +558,7 @@ export function ImportAS400() {
       <div className="flex-1 flex flex-col min-h-0">
         <AnimatePresence mode="wait">
           
-          {/* TAB: UPLOAD */}
+          {/* --- หน้าสำหรับลากไฟล์อัปโหลด (Import Tab) --- */}
           {activeTab === "import" && (
             <motion.div key="import" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col">
               <div 
@@ -556,7 +577,7 @@ export function ImportAS400() {
             </motion.div>
           )}
 
-          {/* TAB: STAGING */}
+          {/* --- หน้าพักไฟล์ก่อนประมวลผล (Staging Tab) --- */}
           {activeTab === "staging" && (
             <motion.div key="staging" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
@@ -637,11 +658,11 @@ export function ImportAS400() {
             </motion.div>
           )}
 
-          {/* TAB: HISTORY (Master-Detail View) */}
+          {/* --- หน้าแสดงข้อมูลที่อ่านได้แล้ว (Data View Tab) --- */}
           {activeTab === "data_view" && (
             <motion.div key="data_view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col gap-4 min-h-0">
                
-               {/* --- Toolbar Area --- */}
+               {/* แถบเครื่องมือ: แจ้งเตือน และ ปุ่มโอนข้อมูล/พิมพ์ */}
                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-ui-bg/50 p-3 rounded-lg border border-ui-border">
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2 text-status-error">
@@ -667,7 +688,7 @@ export function ImportAS400() {
                   </div>
                </div>
 
-               {/* 🟢 TOP TABLE: MASTER (Header) */}
+               {/* --- ตาราง MASTER (Header) --- */}
                <div className="flex-[3] min-h-0 flex flex-col bg-ui-bg/30 border border-ui-border rounded-lg overflow-hidden shadow-inner">
                   <div className="px-4 py-2 border-b border-ui-border bg-ui-card flex justify-between items-center whitespace-nowrap">
                     <div className="flex items-center gap-3">
@@ -774,7 +795,7 @@ export function ImportAS400() {
                               <td className="px-4 py-2 border-r border-ui-border/10 uppercase truncate max-w-[150px]" title={h.customerName ?? ""}>{h.customerName}</td>
                               <td className="px-4 py-2 border-r border-ui-border/10 font-mono">{h.datePo}</td>
                               <td className="px-4 py-2 border-r border-ui-border/10 font-mono">{h.dateShip}</td>
-                              <td className="px-4 py-2 border-r border-ui-border/10 text-right font-bold text-brand-secondary">{Number(h.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                              <td className="px-4 py-1.5 text-right font-bold text-emerald-600">{Number(h.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                               <td className="px-4 py-2 border-r border-ui-border/10 text-ui-muted">
                                 {h.createdAt ? new Date(h.createdAt).toLocaleDateString('th-TH') : "-"}
                               </td>
@@ -793,6 +814,7 @@ export function ImportAS400() {
                   </div>
                </div>
 
+               {/* --- ตาราง DETAIL (รายการสินค้า) --- */}
                <div className="flex-[2] min-h-0 flex flex-col bg-ui-card border border-ui-border rounded-lg overflow-hidden shadow-2xl">
                   <div className="px-4 py-1.5 border-b border-ui-border bg-ui-bg/50 flex justify-between items-center whitespace-nowrap">
                     <div className="flex items-center gap-2">
@@ -843,9 +865,9 @@ export function ImportAS400() {
                               <div onMouseDown={(e) => handleResize('detail', 'vendorProdCode', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
                             </th>
                             
-                            <th style={{ width: detailWidths['qtyOrder'] || 80 }} className="px-4 py-2 border-r border-ui-border text-right relative group">
+                            <th style={{ width: detailWidths['orderQty'] || 80 }} className="px-4 py-2 border-r border-ui-border text-right relative group">
                               จำนวน
-                              <div onMouseDown={(e) => handleResize('detail', 'qtyOrder', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
+                              <div onMouseDown={(e) => handleResize('detail', 'orderQty', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
                             </th>
                             
                             <th style={{ width: detailWidths['priceUnit'] || 100 }} className="px-4 py-2 border-r border-ui-border text-right relative group">
@@ -881,19 +903,19 @@ export function ImportAS400() {
                         </thead>
                         <tbody className="divide-y divide-ui-border/10">
                           {detailData.map(d => (
-                            <tr key={d.id} className="hover:bg-ui-bg/50 transition-colors whitespace-nowrap">
-                              <td className="px-4 py-1.5 text-ui-muted">{d.seqNum}</td>
-                              <td className="px-4 py-1.5 font-bold truncate max-w-[200px]" title={d.productName ?? ""}>{d.productName}</td>
-                              <td className="px-4 py-1.5 text-ui-muted">{d.packSize || "-"}</td>
-                              <td className="px-4 py-1.5 font-mono text-brand-secondary">{d.eanNum}</td>
-                              <td className="px-4 py-1.5">{d.buyerProdCode || "-"}</td>
-                              <td className="px-4 py-1.5 font-bold text-brand-primary">{d.vendorProdCode || "-"}</td>
-                              <td className="px-4 py-1.5 text-right font-bold">{Number(d.qtyOrder).toFixed(2)}</td>
-                              <td className="px-4 py-1.5 text-right font-bold text-emerald-600">{Number(d.priceUnit).toFixed(2)}</td>
+                            <tr key={d.id} className="hover:bg-ui-bg/50 transition-colors whitespace-nowrap text-ui-text">
+                              <td className="px-4 py-1.5 font-bold">{d.seqNum}</td>
+                              <td className="px-4 py-1.5 font-bold">{d.productName}</td>
+                              <td className="px-4 py-1.5 font-bold">{d.unitMeasure || d.packSize || "-"}</td>
+                              <td className="px-4 py-1.5 text-left font-bold text-emerald-600">{d.eanNum || "-"}</td>
+                              <td className="px-4 py-1.5 font-bold">{d.buyerProdCode || "-"}</td>
+                              <td className="px-4 py-1.5 font-bold">{d.vendorProdCode || "-"}</td>
+                              <td className="px-4 py-1.5 text-right font-bold">{Number(d.orderQty).toFixed(2)}</td>
+                              <td className="px-4 py-1.5 text-right font-bold text-emerald-600">{Number(d.unitPrice).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right">{Number(d.freeQty || 0).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right">{Number(d.discount1 || 0).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right">{Number(d.discount2 || 0).toFixed(2)}</td>
-                              <td className="px-4 py-1.5 text-right font-bold">{Number(d.totalAmount || 0).toFixed(2)}</td>
+                              <td className="px-4 py-1.5 text-right font-bold text-emerald-600">{Number(d.totalAmount || 0).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right text-ui-muted truncate max-w-[100px]" title={d.fileName ?? ""}>{d.fileName}</td>
                             </tr>
                           ))}
@@ -910,7 +932,7 @@ export function ImportAS400() {
             </motion.div>
           ) }
 
-          {/* TAB: ARCHIVES */}
+          {/* --- หน้าประวัติไฟล์ดิบ (Archives Tab) --- */}
           {activeTab === "archives" && (
             <motion.div key="archives" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col">
               <div className="flex justify-between items-center mb-4">
@@ -987,7 +1009,7 @@ export function ImportAS400() {
         </AnimatePresence>
       </div>
 
-      {/* 🗑️ Compact Delete Popup */}
+      {/* หน้าต่างยืนยันการลบ (Delete Confirmation Popup) */}
       <AnimatePresence>
         {stagingDeleteTarget && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-ui-bg/60 backdrop-blur-sm">

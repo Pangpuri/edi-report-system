@@ -50,7 +50,6 @@ export function UserManagement() {
 
   // --- Logic Helpers ---
 
-  // ✅ ปรับการ Toggle Role: เรียกใช้ updateUserAction ที่เรายุบรวมลอจิกมาแล้ว
   const toggleRole = async (user: User) => {
     const newRole = user.role === "admin" ? "user" : "admin";
     
