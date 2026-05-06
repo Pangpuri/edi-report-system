@@ -56,7 +56,7 @@ interface EDLData {
   customerPo: string | null;
   customerNum: string | null;
   seqNum: string | null;
-  eanNum: string | null;
+  Bar_Code_Item: string | null;
   productName: string | null;
   orderQty: string | number | null;
   unitPrice: string | number | null;
@@ -69,7 +69,7 @@ interface EDLData {
   discount1: string | number | null;
   discount2: string | number | null;
   discount3: string | number | null;
-  totalAmount: string | number | null;
+  netAmount: string | number | null;
   checkBarInt: string | null;
   checkNameOldProd: string | null;
   changeItem: string | null;
@@ -890,9 +890,9 @@ export function ImportAS400() {
                               <div onMouseDown={(e) => handleResize('detail', 'discount2', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
                             </th>
                             
-                            <th style={{ width: detailWidths['totalAmount'] || 120 }} className="px-4 py-2 border-r border-ui-border text-right relative group">
+                            <th style={{ width: detailWidths['netAmount'] || 120 }} className="px-4 py-2 border-r border-ui-border text-right relative group">
                               จำนวนเงิน
-                              <div onMouseDown={(e) => handleResize('detail', 'totalAmount', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
+                              <div onMouseDown={(e) => handleResize('detail', 'netAmount', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
                             </th>
                             
                             <th style={{ width: detailWidths['fileName'] || 120 }} className="px-4 py-2 text-right relative group">
@@ -915,7 +915,7 @@ export function ImportAS400() {
                               <td className="px-4 py-1.5 text-right">{Number(d.freeQty || 0).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right">{Number(d.discount1 || 0).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right">{Number(d.discount2 || 0).toFixed(2)}</td>
-                              <td className="px-4 py-1.5 text-right font-bold text-emerald-600">{Number(d.totalAmount || 0).toFixed(2)}</td>
+                              <td className="px-4 py-1.5 text-right font-bold text-emerald-600">{Number(d.netAmount || 0).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right text-ui-muted truncate max-w-[100px]" title={d.fileName ?? ""}>{d.fileName}</td>
                             </tr>
                           ))}

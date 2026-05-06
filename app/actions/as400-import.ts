@@ -196,7 +196,6 @@ export async function getEDLByHeadersAction(items: { customerPo: string; fileNam
   if (items.length === 0) return [];
 
   const results: any[] = [];
-  // ใช้ Set เพื่อจำกัด ID ที่ดึงมาแล้ว ป้องกันอาการ "เบิ้ล" ในหน้า UI
   const processedIds = new Set<number>();
 
   try {
@@ -204,30 +203,26 @@ export async function getEDLByHeadersAction(items: { customerPo: string; fileNam
       const details = await db.select({
         id: EDL_temp.id,
         customerPo: EDL_temp.Customer_PO,
-        customerNum: EDH_temp.Customer_Num,
+        customerNum: EDL_temp.Customer_Num,
         seqNum: EDL_temp.Line_Num,
-        eanNum: sql<string>`COALESCE(${prodcode.ean_product_code}, ${EDL_temp.Bar_Code_Item})`,
-        productName: sql<string>`COALESCE(${prodcode.product_description}, ${EDL_temp.Product_Name})`,
+        Bar_Code_Item: sql<string>`COALESCE(NULLIF(TRIM(${EDL_temp.Bar_Code_Item}), ''), NULLIF(TRIM(${prodcode.ean_product_code}), ''), '-')`,
+        productName: sql<string>`COALESCE(NULLIF(TRIM(${EDL_temp.Product_Name}), ''), NULLIF(TRIM(${prodcode.product_description}), ''), 'ไม่พบชื่อสินค้า')`,
         orderQty: EDL_temp.Qty_Order,
         unitPrice: EDL_temp.Price_Unit,
         fileName: EDL_temp.File_Name,
-        unitMeasure: sql<string>`'CN'`, 
+        unitMeasure: EDL_temp.Unit_Measure, 
         packSize: sql<string>`'CN'`,    
-        buyerProdCode: customer.customer_code,
+        buyerProdCode: sql<string>`COALESCE(NULLIF(TRIM(${customer.customer_code}), ''), '-')`,
         vendorProdCode: EDL_temp.Item_Num,
         freeQty: EDL_temp.Free_Qty,
         discount1: EDL_temp.Discount_1,
         discount2: EDL_temp.Discount_2,
         discount3: EDL_temp.Discount_3,
-        totalAmount: EDL_temp.Total_Amount,
+        netAmount: EDL_temp.Net_Amount,
       })
       .from(EDL_temp)
-      .innerJoin(EDH_temp, and(
-        eq(EDL_temp.Customer_PO, EDH_temp.Customer_PO),
-        eq(EDL_temp.File_Name, EDH_temp.File_Name)
-      ))
-      .leftJoin(customer, sql`TRIM(${EDH_temp.Customer_Num}) = TRIM(${customer.customer_code})`)
       .leftJoin(prodcode, sql`TRIM(${EDL_temp.Bar_Code_Item}) = TRIM(${prodcode.ean_product_code})`)
+      .leftJoin(customer, sql`TRIM(${EDL_temp.Customer_Num}) = TRIM(${customer.customer_code})`)
       .where(and(
         eq(EDL_temp.Customer_PO, item.customerPo),
         eq(EDL_temp.File_Name, item.fileName)
@@ -247,6 +242,7 @@ export async function getEDLByHeadersAction(items: { customerPo: string; fileNam
     throw new Error("ไม่สามารถดึงข้อมูลรายละเอียดสินค้าได้");
   }
 }
+
 export async function getEDHData() {
   try {
     const results = await db.select({
@@ -255,9 +251,9 @@ export async function getEDHData() {
       customerPo: EDH_temp.Customer_PO,
       customerNum: EDH_temp.Customer_Num, 
 
-      shortName: sql<string>`COALESCE(${customer.short_name}, ${EDH_temp.Customer_Num})`,    
-      buyerName: sql<string>`COALESCE(${customer.customer_code}, ${EDH_temp.Customer_Num})`, 
-      customerName: sql<string>`COALESCE(${customer.company_name}, 'ไม่พบข้อมูลใน Master')`, 
+      shortName: sql<string>`COALESCE(NULLIF(TRIM(${customer.short_name}), ''), TRIM(${EDH_temp.Customer_Num}))`,    
+      buyerName: sql<string>`COALESCE(NULLIF(TRIM(${customer.customer_code}), ''), TRIM(${EDH_temp.Customer_Num}))`, 
+      customerName: sql<string>`COALESCE(NULLIF(TRIM(${customer.company_name}), ''), 'ไม่พบข้อมูลใน Master')`, 
       
       datePo: EDH_temp.Date_PO,
       dateShip: EDH_temp.Date_Ship,

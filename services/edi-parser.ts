@@ -87,24 +87,26 @@ export async function parseEDIFileDelphi(
         }
 
         await db.insert(EDH_temp).values({
-  H_Type: "H",
-  Customer_PO: Customer_PO.trim(), 
-  Customer_Num: Customer_Num.trim(),
-  Oder_Date: Oder_Date.trim(),    
-  Request_Date: Request_Date.trim(),
-  Term_Pay: Term_Pay.trim(),
-  Oder_Qty: Oder_Qty.trim() || "0",
-  Order_Amount: Order_Amount.trim() || "0.00",
-  Discount_Amount: Discount_Amount.trim() || "0.00",
-  Tax_Amount: Tax_Amount.trim() || "0.00",
-  Total_Amount: Total_Amount.trim() || "0.00",
-  Generate_Date: Generate_Date.trim(),
-  Process_Date: Process_Date.trim(),
-  Ship_To_Address: Ship_To_Address.trim(),
-  Order_Note: Order_Note.trim(),
-  Deli_Time: Deli_Time.trim(),
-  File_Name: fileName,
-});
+          H_Type: "H",
+          Customer_PO: Customer_PO.trim(), 
+          Customer_Num: Customer_Num.trim(),
+          Oder_Date: Oder_Date.trim(),    
+          Request_Date: Request_Date.trim(),
+          Term_Pay: Term_Pay.trim(),
+          Oder_Qty: Oder_Qty.trim() || "0",
+          Order_Amount: Order_Amount.trim() || "0.00",
+          Discount_Amount: Discount_Amount.trim() || "0.00",
+          Tax_Amount: Tax_Amount.trim() || "0.00",
+          Date_PO: Oder_Date.trim(),
+          Date_Ship: Request_Date.trim(),
+          Total_Amount: Total_Amount.trim() || "0.00",
+          Generate_Date: Generate_Date.trim(),
+          Process_Date: Process_Date.trim(),
+          Ship_To_Address: Ship_To_Address.trim(),
+          Order_Note: Order_Note.trim(),
+          Deli_Time: Deli_Time.trim(),
+          File_Name: fileName,
+        });
         headerCount++;
 
       } else if (S[0] === "D") {
@@ -133,8 +135,8 @@ export async function parseEDIFileDelphi(
         let Order_Qty = "";
         for (let i = 109; i <= 115; i++) { Order_Qty += S[i - 1] || ""; if (i === 73) Order_Qty += "."; } 
 
-        let Free_Oty = "";
-        for (let i = 116; i <= 122; i++) { Free_Oty += S[i - 1] || ""; if (i === 84) Free_Oty += "."; } 
+        let Free_Qty = "";
+        for (let i = 116; i <= 122; i++) { Free_Qty += S[i - 1] || ""; if (i === 84) Free_Qty += "."; } 
 
         let Net_Amount = "";
         for (let i = 123; i <= 133; i++) { Net_Amount += S[i - 1] || ""; if (i === 131) Net_Amount += "."; }
@@ -165,27 +167,31 @@ export async function parseEDIFileDelphi(
           for (let i = 256; i <= 260; i++) { Discount_3 += S[i - 1] || ""; if (i === 258) Discount_3 += "."; }
         }
 
-await db.insert(EDL_temp).values({
-  D_Type: "D",
-  Customer_PO: Customer_PO.trim(),
-  Line_Num: Line_Num.trim(),
-  Item_Num: Item_Num.trim(),
-  Item_Description: Item_Description.trim(),
-  Bar_Code_Item: Bar_Code_Item.trim(),
-  Unit_Measure: Unit_Measure.trim(),
-  Unit_Price: Unit_Price.trim() || "0.00",
-  Order_Qty: Order_Qty.trim() || "0",
-  Net_Amount: Net_Amount.trim() || "0.00",
-  Order_Date: Order_Date.trim(),
-  Request_Date: Request_Date.trim(),
-  Discount_1: Discount_1.trim() || "0.00",
-  Discount_2: Discount_2.trim() || "0.00",
-  Discount_Amount_Unit: Discount_Amount_Unit.trim() || "0.00",
-  Buyer_Internal_Prod_code: Buyer_Internal_Prod_code.trim(),
-  Customer_Num: Customer_Num.trim(),
-  Discount_3: Discount_3.trim() || "0.00",
-  File_Name : fileName,
-});        detailCount++;
+        await db.insert(EDL_temp).values({
+          D_Type: "D",
+          Customer_PO: Customer_PO.trim(),
+          Customer_Num: Customer_Num.trim(),
+          Line_Num: Line_Num.trim(),
+          Item_Num: Item_Num.trim(),
+          Product_Name: Item_Description.trim(),
+          Item_Description: Item_Description.trim(),
+          Bar_Code_Item: Bar_Code_Item.trim(),
+          Unit_Measure: Unit_Measure.trim(),
+          Order_Qty: Order_Qty.trim() || "0",
+          Order_Date: Order_Date.trim(),
+          Request_Date: Request_Date.trim(),
+          Price_Unit: Unit_Price.trim() || "0.00",
+          Qty_Order: Order_Qty.trim() || "0.00",
+          Free_Qty: Free_Qty.trim() || "0.00",
+          Net_Amount: Net_Amount.trim() || "0.00",
+          Discount_1: Discount_1.trim() || "0.00",
+          Discount_2: Discount_2.trim() || "0.00",
+          Discount_3: Discount_3.trim() || "0.00",
+          Discount_Amount_Unit: Discount_Amount_Unit.trim() || "0.00",
+          Buyer_Internal_Prod_code: Buyer_Internal_Prod_code.trim(),
+          File_Name : fileName,
+        });
+        detailCount++;
       }
     }
 

@@ -456,9 +456,9 @@ export function AS400History() {
                         <div className="w-[1.5px] h-full bg-slate-400/50 dark:bg-blue-400" />
                       </div>
                     </th>                    
-                    <th style={{ width: detailWidths['totalAmount'] || 120 }} className="px-4 py-2 border-r border-ui-border text-right font-black text-emerald-600 relative group">
+                    <th style={{ width: detailWidths['netAmount'] || 120 }} className="px-4 py-2 border-r border-ui-border text-right font-black text-emerald-600 relative group">
                       <span className="truncate block">จำนวนเงิน</span>
-                      <div onMouseDown={(e) => handleResize('detail', 'totalAmount', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div onMouseDown={(e) => handleResize('detail', 'netAmount', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
                         <div className="w-[1.5px] h-full bg-slate-400/50 dark:bg-blue-400" />
                       </div>
                     </th>
@@ -504,7 +504,7 @@ export function AS400History() {
                         <td className="px-4 py-1.5 text-right">{Number(d.discount1 || 0).toFixed(2)}</td>
                         <td className="px-4 py-1.5 text-right">{Number(d.discount2 || 0).toFixed(2)}</td>
                         <td className="px-4 py-1.5 text-right">{Number(d.discount3 || 0).toFixed(2)}</td>
-                        <td className="px-4 py-1.5 text-right font-bold">{Number(d.totalAmount || 0).toFixed(2)}</td>
+                        <td className="px-4 py-1.5 text-right font-bold">{Number(d.netAmount || 0).toFixed(2)}</td>
 
                         {/* รอข้อมูลมาเติม */}
                         <td className="px-4 py-1.5 text-right">{(d.checkBarInt || "-")}</td>  

@@ -35,9 +35,17 @@ export async function upsertToAS400(headerId: number) {
       return { success: false, message: "ไม่พบข้อมูลใบสั่งซื้อในตารางพักข้อมูล" };
     }
 
+    // แก้ไข: ค้นหา Detail โดยใช้ทั้ง Customer_PO และ File_Name เพื่อป้องกันข้อมูลซ้ำซ้อนจากหลายไฟล์
     const details = await db.query.EDL_temp.findMany({
-      where: eq(EDL_temp.Customer_PO, header.Customer_PO ?? ""),
+      where: and(
+        eq(EDL_temp.Customer_PO, header.Customer_PO ?? ""),
+        eq(EDL_temp.File_Name, header.File_Name ?? "")
+      ),
     });
+
+    if (details.length === 0) {
+      return { success: false, message: `ใบสั่งซื้อ ${header.Customer_PO} ไม่มีรายการสินค้า (Details) ไม่สามารถโอนได้` };
+    }
 
     const trimmedHeader = trimFields({
       H_Type: header.H_Type || "H",
@@ -50,42 +58,51 @@ export async function upsertToAS400(headerId: number) {
       Total_Amount: header.Total_Amount,
       File_Name: header.File_Name,
       AS400_Status: true,
+      Created_At: header.Created_At || new Date(),
     });
 
     const result = await db.transaction(async (tx) => {
+      // 1. บันทึกข้อมูล Header ลงใน History
       const [newHistory] = await tx.insert(TEDH).values(trimmedHeader).returning({ id: TEDH.id });
       
-      if (details.length > 0) {
-        const historyDetails = details.map((d, index) => trimFields({
-          Header_Id: newHistory.id,
-          D_Type: "D",
-          Customer_PO: d.Customer_PO,
-          Customer_Num: header.Customer_Num, // รหัสผู้ซื้อมาจาก Header ตามบรีฟ
-          Line_Num: d.Line_Num || (index + 1).toString(), 
-          Product_Name: d.Product_Name,
-          Pack_Size: "CN", 
-          Bar_Code_Item: d.Bar_Code_Item,
-          Buyer_Prod_Code: header.Customer_Num, 
-          Vendor_Prod_Code: d.Item_Num, // รหัสผู้ผลิต รับมาจาก Item_Num
-          Qty_Order: d.Qty_Order,
-          Price_Unit: d.Price_Unit,
-          Free_Qty: d.Free_Qty,
-          Discount_1: d.Discount_1,
-          Discount_2: d.Discount_2,
-          Discount_3: d.Discount_3,
-          Total_Amount: d.Total_Amount,
-          File_Name: d.File_Name || header.File_Name,
-        }));
-        await tx.insert(TEDL).values(historyDetails);
-      }
+      if (!newHistory) throw new Error("ไม่สามารถสร้างข้อมูลประวัติส่วนหัวได้");
 
-      await tx.delete(EDL_temp).where(eq(EDL_temp.Customer_PO, header.Customer_PO ?? ""));
+      // 2. บันทึกข้อมูล Detail ลงใน History พร้อมผูก Header_Id
+      const historyDetails = details.map((d, index) => trimFields({
+        Header_Id: newHistory.id,
+        D_Type: "D",
+        Customer_PO: d.Customer_PO,
+        Customer_Num: header.Customer_Num,
+        Line_Num: d.Line_Num || (index + 1).toString(), 
+        Product_Name: d.Product_Name,
+        Pack_Size: "CN", 
+        Bar_Code_Item: d.Bar_Code_Item,
+        Buyer_Prod_Code: header.Customer_Num, 
+        Vendor_Prod_Code: d.Item_Num, 
+        Qty_Order: d.Qty_Order,
+        Price_Unit: d.Price_Unit,
+        Free_Qty: d.Free_Qty,
+        Discount_1: d.Discount_1,
+        Discount_2: d.Discount_2,
+        Discount_3: d.Discount_3,
+        Net_Amount: d.Net_Amount,
+        File_Name: d.File_Name || header.File_Name,
+      }));
+      
+      await tx.insert(TEDL).values(historyDetails);
+
+      // 3. ลบข้อมูลจากตารางพัก (Temp) เฉพาะของไฟล์และ PO นี้
+      await tx.delete(EDL_temp).where(and(
+        eq(EDL_temp.Customer_PO, header.Customer_PO ?? ""),
+        eq(EDL_temp.File_Name, header.File_Name ?? "")
+      ));
       await tx.delete(EDH_temp).where(eq(EDH_temp.id, headerId));
 
+      // 4. บันทึก Log การทำงาน
       await tx.insert(as400_logs).values({
         historyId: newHistory.id,
         status: "success",
-        errorMessage: `โอนข้อมูล PO ${header.Customer_PO} เข้า AS/400 และจัดเก็บประวัติเรียบร้อยแล้ว`,
+        errorMessage: `โอนข้อมูล PO ${header.Customer_PO} (${header.File_Name}) เข้า AS/400 สำเร็จ (จำนวน ${details.length} รายการ)`,
       });
 
       return newHistory;
@@ -206,30 +223,46 @@ export async function getEDLHistoryByHeadersAction(items: { customerPo: string; 
   try {
     if (items.length === 0) return [];
 
-    const results = await db.select({
-      id: TEDL.id,
-      customerPo: TEDL.Customer_PO,
-      customerNum: TEDL.Customer_Num,
-      seqNum: TEDL.Line_Num,
-      productName: TEDL.Product_Name,
-      packSize: TEDL.Pack_Size,
-      Bar_Code_Item: TEDL.Bar_Code_Item,
-      buyerProdCode: TEDL.Buyer_Prod_Code,
-      vendorProdCode: TEDL.Vendor_Prod_Code,
-      orderQty: TEDL.Qty_Order,
-      unitPrice: TEDL.Price_Unit,
-      freeQty: TEDL.Free_Qty,
-      discount1: TEDL.Discount_1,
-      discount2: TEDL.Discount_2,
-      discount3: TEDL.Discount_3,
-      totalAmount: TEDL.Total_Amount,
-      fileName: TEDL.File_Name,
-    })
+    const results: any[] = [];
+    const processedIds = new Set<number>();
+
+    for (const item of items) {
+      const details = await db.select({
+        id: TEDL.id,
+        customerPo: TEDL.Customer_PO,
+        customerNum: TEDL.Customer_Num,
+        seqNum: TEDL.Line_Num,
+        productName: TEDL.Product_Name,
+        packSize: TEDL.Pack_Size,
+        Bar_Code_Item: TEDL.Bar_Code_Item,
+        buyerProdCode: TEDL.Buyer_Prod_Code,
+        vendorProdCode: TEDL.Vendor_Prod_Code,
+        orderQty: TEDL.Qty_Order,
+        unitPrice: TEDL.Price_Unit,
+        freeQty: TEDL.Free_Qty,
+        discount1: TEDL.Discount_1,
+        discount2: TEDL.Discount_2,
+        discount3: TEDL.Discount_3,
+        netAmount: TEDL.Net_Amount,
+        fileName: TEDL.File_Name,
+        checkBarInt: TEDL.Bar_Code_Item, // Map field for UI if needed
+        changeItem: TEDL.Change_Item,
+        changeProdName: TEDL.Change_Prod_Name,
+      })
       .from(TEDL)
-      .where(
-        inArray(TEDL.Customer_PO, items.map(i => i.customerPo))
-      )
+      .where(and(
+        eq(TEDL.Customer_PO, item.customerPo),
+        eq(TEDL.File_Name, item.fileName)
+      ))
       .orderBy(sql`CAST(${TEDL.Line_Num} AS INTEGER)`);
+
+      for (const d of details) {
+        if (!processedIds.has(d.id)) {
+          results.push(d);
+          processedIds.add(d.id);
+        }
+      }
+    }
 
     return results;
   } catch (error) {
