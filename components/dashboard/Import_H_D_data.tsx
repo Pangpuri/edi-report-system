@@ -850,9 +850,9 @@ export function ImportAS400() {
                               <div onMouseDown={(e) => handleResize('detail', 'packSize', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
                             </th>
                             
-                            <th style={{ width: detailWidths['eanNum'] || 130 }} className="px-4 py-2 border-r border-ui-border font-mono relative group">
+                            <th style={{ width: detailWidths['Bar_Code_Item'] || 130 }} className="px-4 py-2 border-r border-ui-border font-mono relative group">
                               บาร์โค้ด
-                              <div onMouseDown={(e) => handleResize('detail', 'eanNum', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
+                              <div onMouseDown={(e) => handleResize('detail', 'Bar_Code_Item', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
                             </th>
                             
                             <th style={{ width: detailWidths['buyerProdCode'] || 120 }} className="px-4 py-2 border-r border-ui-border relative group">
@@ -907,7 +907,7 @@ export function ImportAS400() {
                               <td className="px-4 py-1.5 font-bold">{d.seqNum}</td>
                               <td className="px-4 py-1.5 font-bold">{d.productName}</td>
                               <td className="px-4 py-1.5 font-bold">{d.unitMeasure || d.packSize || "-"}</td>
-                              <td className="px-4 py-1.5 text-left font-bold text-emerald-600">{d.eanNum || "-"}</td>
+                              <td className="px-4 py-1.5 text-left font-bold text-emerald-600">{d.Bar_Code_Item || "-"}</td>
                               <td className="px-4 py-1.5 font-bold">{d.buyerProdCode || "-"}</td>
                               <td className="px-4 py-1.5 font-bold">{d.vendorProdCode || "-"}</td>
                               <td className="px-4 py-1.5 text-right font-bold">{Number(d.orderQty).toFixed(2)}</td>

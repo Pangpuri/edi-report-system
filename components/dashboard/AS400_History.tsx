@@ -402,9 +402,9 @@ export function AS400History() {
                         <div className="w-[1.5px] h-full bg-slate-400/50 dark:bg-blue-400" />
                       </div>
                     </th>
-                    <th style={{ width: detailWidths['eanNum'] || 130 }} className="px-4 py-2 border-r border-ui-border font-mono relative group">
+                    <th style={{ width: detailWidths['Bar_Code_Item'] || 130 }} className="px-4 py-2 border-r border-ui-border font-mono relative group">
                       <span className="truncate block">บาร์โค้ด</span>
-                      <div onMouseDown={(e) => handleResize('detail', 'eanNum', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div onMouseDown={(e) => handleResize('detail', 'Bar_Code_Item', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
                         <div className="w-[1.5px] h-full bg-slate-400/50 dark:bg-blue-400" />
                       </div>
                     </th>
@@ -495,7 +495,7 @@ export function AS400History() {
                         <td className="px-4 py-1.5 font-bold">{d.seqNum}</td>
                         <td className="px-4 py-1.5 font-bold truncate max-w-[200px]">{d.productName}</td>
                         <td className="px-4 py-1.5">{d.packSize || "-"}</td>
-                        <td className="px-4 py-1.5 font-mono font-bold text-brand-primary">{d.eanNum}</td>
+                        <td className="px-4 py-1.5 font-mono font-bold text-brand-primary">{d.Bar_Code_Item}</td>
                         <td className="px-4 py-1.5 font-bold">{d.buyerProdCode || "-"}</td>
                         <td className="px-4 py-1.5 font-bold">{d.vendorProdCode || "-"}</td>
                         <td className="px-4 py-1.5 text-right font-bold">{Number(d.orderQty || 0).toFixed(2)}</td>

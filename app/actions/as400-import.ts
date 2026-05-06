@@ -206,7 +206,7 @@ export async function getEDLByHeadersAction(items: { customerPo: string; fileNam
         customerPo: EDL_temp.Customer_PO,
         customerNum: EDH_temp.Customer_Num,
         seqNum: EDL_temp.Line_Num,
-        eanNum: sql<string>`COALESCE(${prodcode.ean_product_code}, ${EDL_temp.EAN_Num})`,
+        eanNum: sql<string>`COALESCE(${prodcode.ean_product_code}, ${EDL_temp.Bar_Code_Item})`,
         productName: sql<string>`COALESCE(${prodcode.product_description}, ${EDL_temp.Product_Name})`,
         orderQty: EDL_temp.Qty_Order,
         unitPrice: EDL_temp.Price_Unit,
@@ -227,7 +227,7 @@ export async function getEDLByHeadersAction(items: { customerPo: string; fileNam
         eq(EDL_temp.File_Name, EDH_temp.File_Name)
       ))
       .leftJoin(customer, sql`TRIM(${EDH_temp.Customer_Num}) = TRIM(${customer.customer_code})`)
-      .leftJoin(prodcode, sql`TRIM(${EDL_temp.EAN_Num}) = TRIM(${prodcode.ean_product_code})`)
+      .leftJoin(prodcode, sql`TRIM(${EDL_temp.Bar_Code_Item}) = TRIM(${prodcode.ean_product_code})`)
       .where(and(
         eq(EDL_temp.Customer_PO, item.customerPo),
         eq(EDL_temp.File_Name, item.fileName)

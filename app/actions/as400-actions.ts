@@ -64,7 +64,7 @@ export async function upsertToAS400(headerId: number) {
           Line_Num: d.Line_Num || (index + 1).toString(), 
           Product_Name: d.Product_Name,
           Pack_Size: "CN", 
-          EAN_Num: d.EAN_Num,
+          Bar_Code_Item: d.Bar_Code_Item,
           Buyer_Prod_Code: header.Customer_Num, 
           Vendor_Prod_Code: d.Item_Num, // รหัสผู้ผลิต รับมาจาก Item_Num
           Qty_Order: d.Qty_Order,
@@ -213,7 +213,7 @@ export async function getEDLHistoryByHeadersAction(items: { customerPo: string; 
       seqNum: TEDL.Line_Num,
       productName: TEDL.Product_Name,
       packSize: TEDL.Pack_Size,
-      eanNum: TEDL.EAN_Num,
+      Bar_Code_Item: TEDL.Bar_Code_Item,
       buyerProdCode: TEDL.Buyer_Prod_Code,
       vendorProdCode: TEDL.Vendor_Prod_Code,
       orderQty: TEDL.Qty_Order,

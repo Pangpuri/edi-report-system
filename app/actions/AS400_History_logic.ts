@@ -44,7 +44,7 @@ export interface EDLHistoryData {
   id: number;
   customerPo: string | null;
   seqNum: string | null;
-  eanNum: string | null;
+  Bar_Code_Item: string | null;
   productName: string | null;
   orderQty: string | number | null;
   unitPrice: string | number | null;
