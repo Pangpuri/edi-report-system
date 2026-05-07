@@ -66,7 +66,7 @@ export function MasterDataTable({
                   <th className={`${cellPadding} border-b border-ui-border w-[120px] ${stickyLeftHeader}`}>Code</th>
                   <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm`}>EAN</th>
                   <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm`}>Company Name</th>
-                  <th className={`${cellPadding} border-b border-ui-border text-right bg-ui-bg/95 backdrop-blur-sm`}>Short</th>
+                  <th className={`${cellPadding} border-b border-ui-border text-right bg-ui-bg/95 backdrop-blur-sm`}>Short Name</th>
                   <th className={`${cellPadding} border-b border-ui-border text-center w-44 ${stickyRightHeader}`}>Management</th>
                 </>
               )}

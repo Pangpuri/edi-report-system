@@ -237,25 +237,25 @@ export function ImportAS400() {
   };
 
   // ฟังก์ชันกดนำเข้าไฟล์ทีละไฟล์
-  const handleProcessFile = async (fileName: string) => {
-    setIsImporting(true);
-    try {
-      const res = await processImportAS400(fileName);
-      if (res.success) {
-        initData();
-        return true;
-      } else {
-        showToast(res.message, "error");
-        return false;
-      }
-    } catch (error: unknown) {
-      const err = error as Error;
-      console.error("Process File Error:", err.message);
-      return false;
-    } finally {
-      setIsImporting(false);
-    }
-  };
+  // const handleProcessFile = async (fileName: string) => {
+  //   setIsImporting(true);
+  //   try {
+  //     const res = await processImportAS400(fileName);
+  //     if (res.success) {
+  //       initData();
+  //       return true;
+  //     } else {
+  //       showToast(res.message, "error");
+  //       return false;
+  //     }
+  //   } catch (error: unknown) {
+  //     const err = error as Error;
+  //     console.error("Process File Error:", err.message);
+  //     return false;
+  //   } finally {
+  //     setIsImporting(false);
+  //   }
+  // };
 
   // ฟังก์ชันโหลดข้อมูลรายการสินค้า (Detail) โดยรองรับการเลือกทีละหลายๆ PO
   const fetchMultipleDetails = async (headers: EDHData[]) => {

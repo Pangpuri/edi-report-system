@@ -12,10 +12,14 @@ import { checkSession } from "@/lib/auth-utils";
  * 
  * @returns {Promise<{success: boolean, data: any[], error?: string}>} ข้อมูลที่อยู่พร้อมสถานะการดึงข้อมูล
  */
-export async function getCustomerAddresses(): Promise<{ success: boolean; data: any[]; error?: string }> {
+type CustomerAddress = typeof custAddress.$inferSelect;
+export async function getCustomerAddresses(): Promise<{ 
+  success: boolean; 
+  data: CustomerAddress[]; 
+  error?: string 
+}> {
   noStore();
   try {
-    // ผู้ใช้ต้องเข้าสู่ระบบก่อนดึงข้อมูล
     await checkSession();
     
     const rawData = await db.select({
@@ -25,7 +29,6 @@ export async function getCustomerAddresses(): Promise<{ success: boolean; data: 
       local_name: custAddress.local_name,
       address1: custAddress.address1,
       address2: custAddress.address2,
-      // ดึงข้อมูลเมืองและรหัสไปรษณีย์
       city: custAddress.city,
       zip_code: custAddress.zip_code,
       telephone: custAddress.telephone,
@@ -42,8 +45,7 @@ export async function getCustomerAddresses(): Promise<{ success: boolean; data: 
     .from(custAddress)
     .orderBy(desc(custAddress.customer_no)); 
 
-    // แปลงค่าจากฐานข้อมูล ถ้าพบค่า null จะให้กลายเป็น undefined
-    // เพื่อให้เข้ากันได้กับ Validation Schema ของ Zod ในฝั่ง Frontend
+  
     const data = rawData.map(item => ({
       ...item,
       ean_location_code: item.ean_location_code ?? undefined,
@@ -63,7 +65,7 @@ export async function getCustomerAddresses(): Promise<{ success: boolean; data: 
       product_table: item.product_table ?? undefined,
       signature: item.signature ?? undefined,
       doc_ref_pttrm: item.doc_ref_pttrm ?? undefined,
-    }));
+    })) as CustomerAddress[];
 
     return { success: true, data };
   } catch (error) {

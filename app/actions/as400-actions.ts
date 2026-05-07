@@ -14,12 +14,15 @@ import { revalidatePath } from "next/cache";
 import { checkSession } from "@/lib/auth-utils";
 
 function trimFields<T extends object>(obj: T): T {
-  const result = { ...obj } as any;
-  for (const key in result) {
-    if (typeof result[key] === "string") {
-      result[key] = (result[key] as string).trim();
+  const result = { ...obj };
+  
+  const temp = result as Record<string, unknown>;
+  for (const key in temp) {
+    if (typeof temp[key] === "string") {
+      temp[key] = (temp[key] as string).trim();
     }
   }
+
   return result;
 }
 

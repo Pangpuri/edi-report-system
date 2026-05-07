@@ -30,17 +30,17 @@ function DashboardContent() {
     }
   }, [isAuthLoading]);
 
-  // 🛡️ Dashboard Logic Hook
+  //  Dashboard Logic Hook
   const {
     activeTab, setActiveTab, viewMode, setViewMode, isPending,
     deleteTarget, setDeleteTarget, editTarget, setEditTarget,
     viewTarget, setViewTarget, handleDelete
   } = useDashboardActions();
 
-  // 🛡️ Data Fetching Hook
+  //  Data Fetching Hook
   const masterData = useMasterData(activeTab);
 
-  // 🌸 คำนวณค่าต่างๆ โดยใช้ useMemo เพื่อประสิทธิภาพสูงสุด
+  //  คำนวณค่าต่างๆ โดยใช้ useMemo เพื่อประสิทธิภาพสูงสุด
   const user = session?.user as SessionUser | undefined;
   const userRole = useMemo(() => user?.role || "user", [user]);
   const isMasterDataTab = useMemo(() => 
@@ -48,10 +48,10 @@ function DashboardContent() {
     [activeTab]
   );
 
-  // 🌸 ตัดสินใจว่าจะโชว์เนื้อหาหรือยัง
+  //  ตัดสินใจว่าจะโชว์เนื้อหาหรือยัง
   const shouldShowContent = !isAuthLoading || isTimeout;
 
-  // 🛡️ ป้องกันการเข้าถึงโดยไม่ได้ Login (Client-side Guard)
+  //  ป้องกันการเข้าถึงโดยไม่ได้ Login (Client-side Guard)
   useEffect(() => {
     if (shouldShowContent && !session && !isAuthLoading) {
       router.push("/login");
@@ -69,7 +69,7 @@ function DashboardContent() {
     });
   }, [router]);
 
-  // 🌸 แสดงสถานะ Loading (Spinner)
+  //  แสดงสถานะ Loading (Spinner)
   if (!shouldShowContent) {
     return (
       <div className="min-h-screen bg-ui-bg flex items-center justify-center">

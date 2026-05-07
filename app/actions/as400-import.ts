@@ -21,9 +21,12 @@ import { parseEDIFileDelphi } from "@/services/edi-parser";
 // --- Interfaces ---
 interface ImportResult {
   success: boolean;
-  message: string;
+  message?: string;
+  headerCount?: number;
+  detailCount?: number;
   filesProcessed?: number;
   errors?: string[];
+  error?: string;
 }
 
 interface StagingConfig {
@@ -38,6 +41,27 @@ async function getStagingConfig(): Promise<StagingConfig> {
   return {
     path: config?.configValue || "C:\\EDI_Staging_Area"
   };
+}
+
+export interface EDLDetail {
+  id: number;
+  customerPo: string | null;
+  customerNum: string | null;
+  seqNum: string | null;
+  Bar_Code_Item: string;
+  productName: string;
+  orderQty: string | number | null; // เผื่อไว้ก่อนเพราะ Database มักส่งมาเป็น string
+  unitPrice: string | number | null;
+  fileName: string | null;
+  unitMeasure: string | null;
+  packSize: string;
+  buyerProdCode: string;
+  vendorProdCode: string | null;
+  freeQty: string | number | null;
+  discount1: string | number | null;
+  discount2: string | number | null;
+  discount3: string | number | null;
+  netAmount: string | number | null;
 }
 
 export async function uploadAS400FilesAction(formData: FormData): Promise<ImportResult> {
@@ -147,21 +171,21 @@ export async function processImportAS400(fileName: string, branchId?: number, sh
   try {
     const { path: STAGING_PATH } = await getStagingConfig();
     const filePath = path.join(STAGING_PATH, fileName);
+    
 
     if (!fs.existsSync(filePath)) {
       return { success: false, message: `ไม่พบไฟล์: ${fileName}` };
     }
 
     const fileBuffer = fs.readFileSync(filePath);
-    const result = await parseEDIFileDelphi(fileBuffer, fileName, shouldClear);
+    const result: ImportResult = await parseEDIFileDelphi(fileBuffer, fileName, shouldClear);
 
     if (!result.success) {
-      return { success: false, message: `ประมวลผลไม่สำเร็จ: ${(result as any).error || ""}` };
-    }
+  return { success: false, message: `ประมวลผลไม่สำเร็จ: ${result.error || ""}` };
+}
 
-    const hCount = (result as any).headerCount ?? 0;
-    const dCount = (result as any).detailCount ?? 0;
-
+const hCount = result.headerCount ?? 0;
+const dCount = result.detailCount ?? 0;
     if (branchId) {
       await db.insert(importLogs).values({
         branchId: branchId,
@@ -192,14 +216,16 @@ export async function processImportAS400(fileName: string, branchId?: number, sh
   }
 }
 
-export async function getEDLByHeadersAction(items: { customerPo: string; fileName: string }[]) {
+export async function getEDLByHeadersAction(items: { customerPo: string; fileName: string }[]): Promise<EDLDetail[]> {
   if (items.length === 0) return [];
 
-  const results: any[] = [];
+  // ✅ กำจัด any ตัวที่ 1: ระบุ Type ให้ results
+  const results: EDLDetail[] = [];
   const processedIds = new Set<number>();
 
   try {
     for (const item of items) {
+  
       const details = await db.select({
         id: EDL_temp.id,
         customerPo: EDL_temp.Customer_PO,
@@ -230,7 +256,7 @@ export async function getEDLByHeadersAction(items: { customerPo: string; fileNam
 
       for (const d of details) {
         if (!processedIds.has(d.id)) {
-          results.push(d);
+          results.push(d as EDLDetail); 
           processedIds.add(d.id);
         }
       }

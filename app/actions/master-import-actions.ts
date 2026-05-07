@@ -8,16 +8,15 @@ import { customer, custAddress, prodcode } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { sql } from "drizzle-orm";
 
-/**
- * ฟังก์ชันสำหรับล้างขยะและ Trim ข้อมูล
- */
+
+// Remove leading and trailing spaces
 function clean(str: string): string {
   return str ? str.trim() : "";
 }
 
-/**
- * 1. นำเข้าข้อมูล Customer Master (CUST.TAB)
- */
+// Import Customer Master
+
+type NewCustomer = typeof customer.$inferInsert;
 export async function importCustomerMaster() {
   try {
     const filePath = path.join(process.cwd(), "data", "CUST.TAB");
@@ -27,18 +26,18 @@ export async function importCustomerMaster() {
     const content = iconv.decode(buffer, "win874");
     const lines = content.split(/\r\n|\n|\r/);
 
-    const dataToInsert: any[] = [];
+    const dataToInsert: NewCustomer[] = []; 
+    
     for (const line of lines) {
       if (!line.startsWith("|")) continue;
       const fields = line.split("|").map(f => clean(f));
 
-      // Index: 1=EAN, 2=Name, 3=Code, 4=ShortName
       if (!fields[3]) continue; 
 
       dataToInsert.push({
         ean_location_code: fields[1],
         company_name: fields[2],
-        customer_code: fields[3],
+        customer_code: fields[3], // ตัวนี้ target conflict
         short_name: fields[4],
       });
     }
@@ -62,9 +61,8 @@ export async function importCustomerMaster() {
   }
 }
 
-/**
- * 2. นำเข้าข้อมูลที่อยู่ลูกค้า (Address.tab)
- */
+// Import Address Master
+type NewAddress = typeof custAddress.$inferInsert;
 export async function importAddressMaster() {
   try {
     const filePath = path.join(process.cwd(), "data", "Address.tab");
@@ -74,16 +72,14 @@ export async function importAddressMaster() {
     const content = iconv.decode(buffer, "win874");
     const lines = content.split(/\r\n|\n|\r/);
 
-    // ล้างข้อมูลเก่าก่อนนำเข้าใหม่ (ตาม Logic เดิมของปัง)
     await db.delete(custAddress);
 
-    const dataToInsert: any[] = [];
+    const dataToInsert: NewAddress[] = []; 
+
     for (const line of lines) {
       if (!line.startsWith("|")) continue;
       
-      // แยกด้วย Pipe แต่ไม่ Trim ทันที เพราะบางฟิลด์ต้องตัดย่อยตามตำแหน่ง (เช่น City+Zip)
       const fields = line.split("|");
-      
       if (!fields[1] || fields[1].trim() === "") continue;
 
       const cityZipRaw = fields[5] || "";
@@ -113,7 +109,6 @@ export async function importAddressMaster() {
     }
 
     if (dataToInsert.length > 0) {
-      // แบ่งเป็นก้อนละ 1000 รายการเพื่อป้องกัน stack overflow
       const chunkSize = 1000;
       for (let i = 0; i < dataToInsert.length; i += chunkSize) {
         const chunk = dataToInsert.slice(i, i + chunkSize);
@@ -129,9 +124,8 @@ export async function importAddressMaster() {
   }
 }
 
-/**
- * 3. นำเข้าข้อมูลสินค้า (prodcode.Tab)
- */
+// Import Product Master
+type NewProduct = typeof prodcode.$inferInsert;
 export async function importProductMaster() {
   try {
     const filePath = path.join(process.cwd(), "data", "prodcode.Tab");
@@ -141,12 +135,12 @@ export async function importProductMaster() {
     const content = iconv.decode(buffer, "win874");
     const lines = content.split(/\r\n|\n|\r/);
 
-    const dataToInsert: any[] = [];
+    const dataToInsert: NewProduct[] = []; 
+    
     for (const line of lines) {
       if (!line.startsWith("|")) continue;
       const fields = line.split("|").map(f => clean(f));
 
-      // โครงสร้าง prodcode: | EAN | Desc | InternalCode |
       const ean = fields[1];
       const desc = fields[2];
       const internal = fields[3];
@@ -154,7 +148,7 @@ export async function importProductMaster() {
       if (!internal) continue;
 
       dataToInsert.push({
-        id: internal, // แมป InternalCode -> id (Primary Key)
+        id: internal, 
         ean_product_code: ean,
         product_description: desc,
       });
@@ -178,9 +172,7 @@ export async function importProductMaster() {
   }
 }
 
-/**
- * รวมพลังนำเข้า Master Data ทั้งหมด
- */
+// Import All Master
 export async function importAllMasterData() {
   const results = [
     await importCustomerMaster(),
