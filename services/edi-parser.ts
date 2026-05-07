@@ -96,6 +96,7 @@ export async function parseEDIFileDelphi(
           Oder_Qty: Oder_Qty.trim() || "0",
           Order_Amount: Order_Amount.trim() || "0.00",
           Discount_Amount: Discount_Amount.trim() || "0.00",
+          S_Discount_Amount: S_Discount_Amount.trim() || "0.00",
           Tax_Amount: Tax_Amount.trim() || "0.00",
           Date_PO: Oder_Date.trim(),
           Date_Ship: Request_Date.trim(),

@@ -22,9 +22,7 @@ const userSchema = z.object({
 type UserInput = z.infer<typeof userSchema>;
 type PartialUserInput = Partial<UserInput>;
 
-/**
- * 🟢 Create User
- */
+// createUser
 export async function createUserAction(data: UserInput) {
   try {
     const validated = userSchema.parse(data);
@@ -65,9 +63,9 @@ export async function createUserAction(data: UserInput) {
   }
 }
 
-/**
- * 🟡 Update User
- */
+
+ // Update User
+ 
 export async function updateUserAction(
   userId: string,
   data: PartialUserInput
@@ -100,7 +98,7 @@ export async function updateUserAction(
       }
     }
 
-    // 🧾 2. Update User Data
+    //  2. Update User Data
     await db.transaction(async (tx) => {
       const uData: Partial<typeof user.$inferInsert> = {};
 
@@ -142,9 +140,7 @@ export async function updateUserAction(
   }
 }
 
-/**
- * 🔵 Get Users
- */
+//getUsers
 export async function getUsersAction() {
   try {
     const data = await db.select().from(user).orderBy(user.createdAt);
@@ -154,9 +150,7 @@ export async function getUsersAction() {
   }
 }
 
-/**
- * 🔴 Delete User
- */
+//deleteUser
 export async function deleteUserAction(userId: string) {
   try {
     await db.delete(user).where(eq(user.id, userId));

@@ -124,6 +124,7 @@ export const EDH_temp = pgTable("EDH_tmp", {
   Oder_Qty: varchar("Oder_Qty", { length: 25 }),
   Order_Amount: varchar("Order_Amount", { length: 25 }),
   Discount_Amount: varchar("Discount_Amount", { length: 25 }),
+  S_Discount_Amount: varchar("S_Discount_Amount", { length: 25 }),
   Tax_Amount: varchar("Tax_Amount", { length: 25 }),
   Customer_Name: text("Customer_Name"),
   Buyer_Name: text("Buyer_Name"),
