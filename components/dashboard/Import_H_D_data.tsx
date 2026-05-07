@@ -76,13 +76,15 @@ interface EDLData {
   changeProdName: string | null;
 }
 
+// Types 
 interface RawArchive {
   id: number;
   fileName: string;
   originalName: string;
   fileSize: number | null;
-  uploadedAt: Date | null;
   storagePath: string;
+  uploadedAt: Date | null;
+  uploadedAtDisplay?: string | null;
 }
 
 type TabType = "import" | "staging" | "data_view" | "archives";
@@ -1017,7 +1019,7 @@ export function ImportAS400() {
                           </button>
                         </th>
                         <th className="px-4 py-2">Filename</th>
-                        <th className="px-4 py-2">Date</th>
+                        <th className="px-4 py-2">Date/Time</th>
                         <th className="px-4 py-2">Size</th>
                         <th className="px-4 py-2 text-center">Action</th>
                       </tr>
@@ -1040,7 +1042,7 @@ export function ImportAS400() {
                               </div>
                             </td>
                             <td className="px-4 py-2 font-bold">{archive.originalName}</td>
-                            <td className="px-4 py-2 text-ui-muted">{archive.uploadedAt ? new Date(archive.uploadedAt).toLocaleDateString() : "-"}</td>
+                            <td className="px-4 py-2 text-ui-muted">{archive.uploadedAtDisplay || "-"}</td>
                             <td className="px-4 py-2">{(archive.fileSize ? archive.fileSize / 1024 : 0).toFixed(1)} KB</td>
                             <td className="px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                               <div className="flex justify-center gap-1.5">

@@ -26,6 +26,7 @@ export interface EDHHistoryData {
   totalAmount: string | null;
   hType: string | null;
   as400ImportedAt: Date | null;
+  importedAtDisplay: string | null;
   createdAt: Date | null;
   cusNameOp: string | null;
   cusProdChange: string | null;
@@ -38,6 +39,7 @@ export interface AS400Log {
   status: string | null;
   errorMessage: string | null;
   createdAt: Date | null;
+  createdAtDisplay: string | null;
 }
 
 export interface EDLHistoryData {

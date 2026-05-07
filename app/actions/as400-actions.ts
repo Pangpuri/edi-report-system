@@ -246,6 +246,8 @@ export async function getImportedAS400Data() {
       fileName: TEDH.File_Name,
       as400Status: TEDH.AS400_Status,
       as400ImportedAt: TEDH.AS400_Imported_At,
+      // เพิ่มฟิลด์แสดงผลวันที่แบบจัดรูปแบบแล้วจาก DB โดยตรง
+      importedAtDisplay: sql<string>`TO_CHAR(${TEDH.AS400_Imported_At} + interval '7 hours', 'DD/MM/YYYY HH24:MI:SS')`,
       createdAt: TEDH.Created_At,
     })
     .from(TEDH)
@@ -301,7 +303,14 @@ export async function getAS400LogsByHistoryIds(historyIds: number[]) {
   try {
     if (!historyIds.length) return [];
     
-    const logs = await db.select()
+    const logs = await db.select({
+      id: as400_logs.id,
+      historyId: as400_logs.historyId,
+      status: as400_logs.status,
+      errorMessage: as400_logs.errorMessage,
+      createdAt: as400_logs.createdAt,
+      createdAtDisplay: sql<string>`TO_CHAR(${as400_logs.createdAt} + interval '7 hours', 'DD/MM/YYYY HH24:MI:SS')`,
+    })
       .from(as400_logs)
       .where(inArray(as400_logs.historyId, historyIds))
       .orderBy(desc(as400_logs.createdAt));

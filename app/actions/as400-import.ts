@@ -349,9 +349,18 @@ export async function deleteAS400FileAction(fileName: string, branchId?: number)
 }
 
 export async function getRawFileArchivesAction() {
-  return await db.query.rawFileArchives.findMany({
-    orderBy: (rf, { desc }) => [desc(rf.uploadedAt)]
-  });
+  return await db.select({
+    id: rawFileArchives.id,
+    fileName: rawFileArchives.fileName,
+    originalName: rawFileArchives.originalName,
+    fileSize: rawFileArchives.fileSize,
+    storagePath: rawFileArchives.storagePath,
+    branchId: rawFileArchives.branchId,
+    uploadedAt: rawFileArchives.uploadedAt,
+    uploadedAtDisplay: sql<string>`TO_CHAR(${rawFileArchives.uploadedAt} + interval '7 hours', 'DD/MM/YYYY HH24:MI:SS')`,
+  })
+  .from(rawFileArchives)
+  .orderBy(desc(rawFileArchives.uploadedAt));
 }
 
 export async function deleteRawArchiveAction(id: number) {

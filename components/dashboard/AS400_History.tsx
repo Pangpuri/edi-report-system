@@ -268,14 +268,7 @@ export function AS400History() {
                         <td className="px-4 py-2 border-r border-ui-border/10">{h.dateShip}</td>
                         <td className="px-4 py-1.5 text-right font-medium text-emerald-600">{Number(h.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                         <td className="px-4 py-2 border-r border-ui-border/10 text-ui-muted">
-                          {h.as400ImportedAt ? (
-                            (() => {
-                              const d = new Date(h.as400ImportedAt);
-                              const offset = d.getTimezoneOffset() * 60000;
-                              const localDate = new Date(d.getTime() + offset);
-                              return localDate.toLocaleString('th-TH');
-                            })()
-                          ) : "-"}
+                          {h.importedAtDisplay || "-"}
                         </td>
                         <td className="px-4 py-2 border-r border-ui-border/10 text-center">
                           <button 
@@ -484,14 +477,7 @@ export function AS400History() {
                     logData.map(log => (
                       <tr key={log.id} className="hover:bg-ui-bg/50 transition-colors">
                         <td className="px-4 py-2 font-mono text-ui-muted">
-                          {log.createdAt ? (
-                            (() => {
-                              const d = new Date(log.createdAt);
-                              const offset = d.getTimezoneOffset() * 60000;
-                              const localDate = new Date(d.getTime() + offset);
-                              return localDate.toLocaleString('th-TH');
-                            })()
-                          ) : "-"}
+                          {log.createdAtDisplay || "-"}
                         </td>
                         <td className="px-4 py-2 text-center">
                           <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${log.status === 'success' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-status-error/10 text-status-error'}`}>
