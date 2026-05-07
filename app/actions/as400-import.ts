@@ -11,7 +11,8 @@ import {
   importLogs, 
   rawFileArchives, 
   customer, 
-  prodcode 
+  prodcode,
+  TEDH
 } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -203,8 +204,19 @@ const dCount = result.detailCount ?? 0;
       const archivePath = path.join(archiveDir, fileName);
       if (fs.existsSync(archivePath)) fs.unlinkSync(archivePath);
       fs.renameSync(filePath, archivePath);
+
+      // ✅ เก็บประวัติไฟล์ดิบลงฐานข้อมูล
+      const stats = fs.statSync(archivePath);
+      await db.insert(rawFileArchives).values({
+        fileName: fileName,
+        originalName: fileName,
+        fileSize: stats.size,
+        storagePath: archivePath,
+        branchId: branchId || null,
+        uploadedAt: new Date(),
+      });
     } catch (err) { 
-      console.error("[Move Error]", err); 
+      console.error("[Move/Archive Error]", err); 
     }
 
     revalidatePath("/");
@@ -285,7 +297,11 @@ export async function getEDHData() {
       dateShip: EDH_temp.Date_Ship,
       totalAmount: EDH_temp.Total_Amount,
       fileName: EDH_temp.File_Name,
-      as400Status: sql<boolean>`false`,
+      as400Status: sql<boolean>`EXISTS (
+        SELECT 1 FROM "EDH_history" h 
+        WHERE TRIM(h."Customer_PO") = TRIM(${EDH_temp.Customer_PO}) 
+        AND TRIM(h."File_Name") = TRIM(${EDH_temp.File_Name})
+      )`,
       createdAt: EDH_temp.Created_At,
     })
     .from(EDH_temp)

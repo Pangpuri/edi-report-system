@@ -193,6 +193,43 @@ export async function deleteImportedAction(headerIds: number[]) {
   }
 }
 
+export async function deleteSelectedTempAction(headerIds: number[]) {
+  try {
+    await checkSession();
+    if (headerIds.length === 0) return { success: false, message: "กรุณาเลือกรายการที่ต้องการลบ" };
+
+    const result = await db.transaction(async (tx) => {
+      // 1. ค้นหาข้อมูล Header เพื่อเอา Customer_PO และ File_Name มาลบ Detail
+      const headers = await tx.select({
+        customerPo: EDH_temp.Customer_PO,
+        fileName: EDH_temp.File_Name,
+      })
+      .from(EDH_temp)
+      .where(inArray(EDH_temp.id, headerIds));
+
+      // 2. ลบข้อมูล Detail ที่เกี่ยวข้อง
+      for (const header of headers) {
+        await tx.delete(EDL_temp).where(and(
+          eq(EDL_temp.Customer_PO, header.customerPo ?? ""),
+          eq(EDL_temp.File_Name, header.fileName ?? "")
+        ));
+      }
+
+      // 3. ลบข้อมูล Header
+      await tx.delete(EDH_temp).where(inArray(EDH_temp.id, headerIds));
+
+      return { success: true };
+    });
+
+    revalidatePath("/");
+    return { success: true, message: `ลบข้อมูลชั่วคราวสำเร็จ ${headerIds.length} รายการ` };
+  } catch (error: unknown) {
+    console.error("Delete Temp Action Error:", error);
+    const err = error as Error;
+    return { success: false, message: `ลบไม่สำเร็จ: ${err.message}` };
+  }
+}
+
 export async function getImportedAS400Data() {
   try {
     const results = await db.select({

@@ -7,7 +7,7 @@ import {
   Search, RefreshCw, Loader2,
   MousePointer2,
   Trash2, Globe, FileInput, Download,
-  ClipboardCheck, Printer, AlertTriangle
+  ClipboardCheck, AlertTriangle
 } from "lucide-react";
 import { 
   processImportAS400, 
@@ -20,7 +20,7 @@ import {
   clearTempTablesAction
 } from "@/app/actions/as400-import";
 // ดึงลอจิกการโอนข้อมูลจากไฟล์ Action แยกต่างหาก
-import { upsertToAS400, deleteImportedAction } from "@/app/actions/as400-actions";
+import { upsertToAS400, deleteImportedAction, deleteSelectedTempAction } from "@/app/actions/as400-actions";
 import { useSession } from "@/lib/auth-client";
 import { SessionUser } from "@/app/edi";
 import { useToast } from "@/components/ToastProvider";
@@ -457,6 +457,23 @@ export function ImportAS400() {
     }
   };
 
+  const handleDownloadSelectedArchives = async () => {
+    if (selectedArchives.length === 0) return;
+    
+    showToast(`กำลังเตรียมดาวน์โหลด ${selectedArchives.length} รายการ...`, "success");
+    
+    for (const id of selectedArchives) {
+      const link = document.createElement('a');
+      link.href = `/api/archive/download?id=${id}`;
+      link.setAttribute('download', '');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      // หน่วงเวลาเล็กน้อยเพื่อไม่ให้ Browser บล็อกการโหลดรัวๆ
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+  };
+
   // ลอจิกการเลือกบรรทัดในตาราง Master
   const handleSelectHeader = (header: EDHData) => {
     const isSelected = selectedHeaders.some(h => h.id === header.id);
@@ -507,9 +524,33 @@ export function ImportAS400() {
     await initData();
   };
 
-  const handlePrintPO = () => {
-    if (selectedHeaders.length === 0) return;
-    showToast(`กำลังเตรียมฟอร์ม PO สำหรับพิมพ์ ${selectedHeaders.length} รายการ...`, "success");
+  const handleDeleteTemp = async () => {
+    if (selectedHeaders.length === 0) {
+      showToast("กรุณาเลือกรายการที่ต้องการลบ", "error");
+      return;
+    }
+
+    if (!confirm(`ยืนยันการลบข้อมูลชั่วคราว ${selectedHeaders.length} รายการที่เลือก? (ข้อมูลนี้จะไม่ถูกนำเข้าสู่ระบบ)`)) return;
+
+    setIsTransferring(true);
+    try {
+      const ids = selectedHeaders.map(h => h.id);
+      const res = await deleteSelectedTempAction(ids);
+      if (res.success) {
+        showToast(res.message, "success");
+        setSelectedHeaders([]);
+        setDetailData([]);
+        setDetailCache({});
+        await initData();
+      } else {
+        showToast(res.message, "error");
+      }
+    } catch (error) {
+      console.error("Delete Temp Error:", error);
+      showToast("เกิดข้อผิดพลาดในการลบข้อมูล", "error");
+    } finally {
+      setIsTransferring(false);
+    }
   };
 
   return (
@@ -521,13 +562,13 @@ export function ImportAS400() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-ui-card/80 backdrop-blur-sm flex flex-col items-center justify-center">
             <Loader2 size={32} className="animate-spin text-brand-primary mb-2" />
             <h3 className="text-brand-primary font-black text-xs uppercase tracking-widest">
-              {isTransferring ? "Transferring to AS/400..." : isImporting ? "Filtering & Importing..." : "Configuring..."}
+              {isTransferring ? "Processing..." : isImporting ? "Filtering & Importing..." : "Configuring..."}
             </h3>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ส่วนหัวของหน้าจอ (ชื่อโมดูลและปุ่มเลือก Tab) */}
+      {/* ส่วนหัวของหน้าจอ (ชื่อโมดูลและปุ่มเลือก Tab) --- */}
       <div className="flex flex-col lg:flex-row justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-brand-primary/10 rounded-lg text-brand-primary border border-brand-primary/20">
@@ -662,7 +703,7 @@ export function ImportAS400() {
           {activeTab === "data_view" && (
             <motion.div key="data_view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col gap-4 min-h-0">
                
-               {/* แถบเครื่องมือ: แจ้งเตือน และ ปุ่มโอนข้อมูล/พิมพ์ */}
+               {/* แถบเครื่องมือ: แจ้งเตือน และ ปุ่มโอนข้อมูล/ลบข้อมูล */}
                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-ui-bg/50 p-3 rounded-lg border border-ui-border">
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2 text-status-error">
@@ -672,18 +713,18 @@ export function ImportAS400() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button 
+                      onClick={handleDeleteTemp}
+                      disabled={selectedHeaders.length === 0 || isTransferring}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${selectedHeaders.length > 0 ? "bg-status-error/10 text-status-error border border-status-error/20 hover:bg-status-error hover:text-white" : "bg-ui-border text-ui-muted cursor-not-allowed"}`}
+                    >
+                      <Trash2 size={14} /> ลบข้อมูล ({selectedHeaders.length})
+                    </button>
+                    <button 
                       onClick={handleTransferToAS400}
                       disabled={selectedHeaders.length === 0 || isTransferring}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${selectedHeaders.length > 0 ? "bg-emerald-600 text-white shadow-md hover:bg-emerald-700" : "bg-ui-border text-ui-muted cursor-not-allowed"}`}
                     >
                       <ClipboardCheck size={14} /> โอนข้อมูลเข้า AS/400 ({selectedHeaders.length})
-                    </button>
-                    <button 
-                      onClick={handlePrintPO}
-                      disabled={selectedHeaders.length === 0}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${selectedHeaders.length > 0 ? "bg-brand-primary text-white shadow-md hover:brightness-110" : "bg-ui-border text-ui-muted cursor-not-allowed"}`}
-                    >
-                      <Printer size={14} /> Print ({selectedHeaders.length})
                     </button>
                   </div>
                </div>
@@ -801,7 +842,7 @@ export function ImportAS400() {
                               </td>
                               <td className="px-4 py-2 text-center">
                                 {h.as400Status ? (
-                                  <span className="text-[11px] font-medium text-red-600 uppercase">เข้า AS/400 แล้ว</span>
+                                  <span className="text-[11px] font-medium text-red-600 uppercase">เคยนำเข้าแล้ว</span>
                                 ) : (
                                   <span className="text-[11px] font-medium text-ui-muted uppercase opacity-50">รอนำเข้า</span>
                                 )}
@@ -938,14 +979,24 @@ export function ImportAS400() {
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
                   <h3 className="text-xs font-black uppercase text-brand-primary">Archives</h3>
-                  {selectedArchives.length > 0 && isAdmin && (
-                    <button 
-                      onClick={handleDeleteSelectedArchives}
-                      className="px-3 py-1 bg-status-error/10 text-status-error border border-status-error/20 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-status-error hover:text-white transition-all"
-                    >
-                      Delete Selected ({selectedArchives.length})
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {selectedArchives.length > 0 && (
+                      <button 
+                        onClick={handleDownloadSelectedArchives}
+                        className="px-3 py-1 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all flex items-center gap-1.5"
+                      >
+                        <Download size={12} /> Download Selected ({selectedArchives.length})
+                      </button>
+                    )}
+                    {selectedArchives.length > 0 && isAdmin && (
+                      <button 
+                        onClick={handleDeleteSelectedArchives}
+                        className="px-3 py-1 bg-status-error/10 text-status-error border border-status-error/20 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-status-error hover:text-white transition-all flex items-center gap-1.5"
+                      >
+                        <Trash2 size={12} /> Delete Selected ({selectedArchives.length})
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="relative">
                   <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-ui-muted" />

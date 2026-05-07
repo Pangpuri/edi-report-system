@@ -52,15 +52,15 @@ export function MasterDataTable({
   const stickyRightHeader = "md:sticky md:right-0 z-30 bg-ui-bg/95 backdrop-blur-sm md:shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]";
   const stickyRightCell = "md:sticky md:right-0 z-10 bg-ui-card group-hover:bg-brand-primary/[0.03] md:shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] transition-colors border-l border-ui-border/20 md:border-none";
 
-  // Dynamic padding based on tab (Address needs to be tighter)
-  const cellPadding = activeTab === "address" ? "p-2.5" : "p-4";
+  // Dynamic padding based on tab (Tight padding to match EDI center)
+  const cellPadding = "px-4 py-2";
 
   return (
     <div className="w-full flex-1 flex flex-col bg-transparent overflow-hidden">
       <div className="flex-1 overflow-auto custom-scrollbar">
-        <table className={`text-left text-xs border-separate border-spacing-0 ${activeTab === "address" ? "min-w-[2800px]" : "min-w-full"}`}>
+        <table className={`text-left text-sm border-separate border-spacing-0 ${activeTab === "address" ? "min-w-[2800px]" : "min-w-full"}`}>
           <thead className="sticky top-0 z-20">
-            <tr className="bg-ui-bg text-ui-muted uppercase tracking-wider font-medium">
+            <tr className="bg-ui-bg text-ui-muted tracking-widest font-medium uppercase text-[12px]">
               {activeTab === "customer" && (
                 <>
                   <th className={`${cellPadding} border-b border-ui-border w-[120px] ${stickyLeftHeader}`}>Code</th>
@@ -94,7 +94,7 @@ export function MasterDataTable({
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-ui-border/30 text-ui-text relative">
+          <tbody className="divide-y divide-ui-border/10 text-ui-text relative">
             <AnimatePresence mode="popLayout" initial={false}>
               {data.map((item, index) => {
                 const rawId = String(isCustomer(item) ? item.customer_code : isProduct(item) ? item.ean_product_code : item.customer_no || "").trim();
@@ -108,12 +108,12 @@ export function MasterDataTable({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
-                    className="hover:bg-brand-primary/[0.01] transition-colors group"
+                    className="hover:bg-brand-primary/[0.03] transition-colors group"
                   >
                     {/* 🏢 CUSTOMER RENDER */}
                     {activeTab === "customer" && isCustomer(item) && (
                       <>
-                        <td className={`${cellPadding} whitespace-nowrap font-mono text-brand-primary font-medium w-[120px] ${stickyLeftCell}`}>
+                        <td className={`${cellPadding} whitespace-nowrap font-medium text-brand-primary w-[120px] ${stickyLeftCell}`}>
                           {item.customer_code}
                         </td>
                         <td className={`${cellPadding} whitespace-nowrap font-mono`}>
@@ -131,7 +131,7 @@ export function MasterDataTable({
                     {/* 📦 PRODUCT RENDER */}
                     {activeTab === "product" && isProduct(item) && (
                       <>
-                        <td className={`${cellPadding} whitespace-nowrap font-mono text-brand-secondary font-medium w-[150px] ${stickyLeftCell}`}>
+                        <td className={`${cellPadding} whitespace-nowrap font-medium text-brand-secondary w-[150px] ${stickyLeftCell}`}>
                           {item.ean_product_code}
                         </td>
                         <td className={`${cellPadding} whitespace-nowrap font-mono font-medium`}>
@@ -146,7 +146,7 @@ export function MasterDataTable({
                     {/* 🏠 ADDRESS RENDER */}
                     {activeTab === "address" && isAddress(item) && (
                       <>
-                        <td className={`${cellPadding} whitespace-nowrap font-mono text-brand-primary font-medium w-[120px] ${stickyLeftCell}`}>
+                        <td className={`${cellPadding} whitespace-nowrap font-medium text-brand-primary w-[120px] ${stickyLeftCell}`}>
                           {item.customer_no}
                         </td>
                         <td className={`${cellPadding} whitespace-nowrap font-medium`}>
@@ -155,7 +155,7 @@ export function MasterDataTable({
                         <td className={`${cellPadding} whitespace-nowrap font-medium text-ui-muted`}>
                           <div className="max-w-[200px] truncate">{item.local_name ?? "-"}</div>
                         </td>
-                        <td className={`${cellPadding} whitespace-nowrap font-mono text-[14px]`}>{item.ean_location_code ?? "-"}</td>
+                        <td className={`${cellPadding} whitespace-nowrap font-mono`}>{item.ean_location_code ?? "-"}</td>
                         <td className={`${cellPadding} whitespace-nowrap`}><div className="max-w-[300px] truncate">{item.address1 ?? "-"}</div></td>
                         <td className={`${cellPadding} whitespace-nowrap`}><div className="max-w-[300px] truncate">{item.address2 ?? "-"}</div></td>
                         <td className={`${cellPadding} whitespace-nowrap`}>{item.city ?? "-"}</td>
@@ -165,15 +165,15 @@ export function MasterDataTable({
                     )}
 
                     <td className={`${cellPadding} ${stickyRightCell}`}>
-                      <div className="flex justify-center gap-2">
-                        <button onClick={() => onView(item)} className="px-3 py-1.5 rounded-xl bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white transition-all text-[11px] font-medium border border-blue-500/20">
+                      <div className="flex justify-center gap-1.5">
+                        <button onClick={() => onView(item)} className="px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white transition-all text-[12px] font-medium border border-blue-500/20">
                           View
                         </button>
-                        <button onClick={() => onEdit(item)} className="px-3 py-1.5 rounded-xl bg-brand-secondary/10 text-brand-secondary hover:bg-brand-secondary hover:text-white transition-all text-[11px] font-medium border border-brand-secondary/20">
+                        <button onClick={() => onEdit(item)} className="px-3 py-1.5 rounded-lg bg-brand-secondary/10 text-brand-secondary hover:bg-brand-secondary hover:text-white transition-all text-[12px] font-medium border border-brand-secondary/20">
                           Edit
                         </button>
                         {isAdmin && (
-                          <button onClick={() => onDelete(rawId)} className="px-3 py-1.5 rounded-xl bg-status-error/10 text-status-error hover:bg-status-error hover:text-white transition-all text-[11px] font-medium border border-status-error/20">
+                          <button onClick={() => onDelete(rawId)} className="px-3 py-1.5 rounded-lg bg-status-error/10 text-status-error hover:bg-status-error hover:text-white transition-all text-[12px] font-medium border border-status-error/20">
                             Del
                           </button>
                         )}
@@ -187,15 +187,15 @@ export function MasterDataTable({
         </table>
       </div>
 
-      <div className="bg-ui-bg/50 border-t border-ui-border p-4 flex items-center justify-between">
-        <div className="text-ui-muted text-[11px] font-medium uppercase tracking-widest pl-4">
+      <div className="bg-ui-bg/50 border-t border-ui-border p-2 flex items-center justify-between">
+        <div className="text-ui-muted text-[10px] font-black uppercase tracking-widest pl-4">
           PAGE <span className="text-brand-primary">{currentPage}</span> / {totalPages}
         </div>
         <div className="flex gap-2 pr-4">
-          <button onClick={onPrevPage} disabled={currentPage === 1} className="px-4 py-2 rounded-2xl bg-ui-card text-ui-text border border-ui-border hover:border-brand-primary disabled:opacity-30 transition-all font-medium text-[11px] shadow-sm active:scale-95">
+          <button onClick={onPrevPage} disabled={currentPage === 1} className="px-4 py-1.5 rounded-lg bg-ui-card text-ui-text border border-ui-border hover:border-brand-primary disabled:opacity-30 transition-all font-black text-[9px] uppercase tracking-widest shadow-sm active:scale-95">
             PREV
           </button>
-          <button onClick={onNextPage} disabled={currentPage === totalPages} className="px-4 py-2 rounded-2xl bg-ui-card text-ui-text border border-ui-border hover:border-brand-primary disabled:opacity-30 transition-all font-medium text-[11px] shadow-sm active:scale-95">
+          <button onClick={onNextPage} disabled={currentPage === totalPages} className="px-4 py-1.5 rounded-lg bg-ui-card text-ui-text border border-ui-border hover:border-brand-primary disabled:opacity-30 transition-all font-black text-[9px] uppercase tracking-widest shadow-sm active:scale-95">
             NEXT
           </button>
         </div>
