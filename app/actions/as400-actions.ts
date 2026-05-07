@@ -61,7 +61,7 @@ export async function upsertToAS400(headerId: number) {
       Total_Amount: header.Total_Amount,
       File_Name: header.File_Name,
       AS400_Status: true,
-      Created_At: header.Created_At || new Date(),
+      // ลบ Created_At ออกเพื่อให้ใช้ค่า defaultNow() จาก DB (เป็นเวลาที่นำเข้าจริง)
     });
 
     const result = await db.transaction(async (tx) => {
