@@ -10,6 +10,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { Check } from "lucide-react";
 
 // --- กลุ่มตารางระบบ Auth และ User Management ---
 
@@ -228,6 +229,7 @@ export const TEDL = pgTable("EDL_history", {
   Discount_2: numeric("Discount_2", { precision: 12, scale: 2 }),
   Discount_3: numeric("Discount_3", { precision: 12, scale: 2 }),
   Net_Amount: numeric("Net_Amount", { precision: 12, scale: 2 }),
+  Check_Bar_Int: varchar("Check_Bar_Int", { length: 30 }),
   File_Name: varchar("File_Name", { length: 255 }),
   Change_Item: varchar("Change_Item", { length: 30 }),
   Change_Prod_Name: text("Change_Prod_Name"),

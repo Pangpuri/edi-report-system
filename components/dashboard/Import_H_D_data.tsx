@@ -788,13 +788,13 @@ export function ImportAS400() {
                                   {isSelected && <CheckCircle2 size={10} />}
                                 </div>
                               </td>
-                              <td className="px-4 py-2 border-r border-ui-border/10 font-bold">{h.shortName || h.customerNum}</td>
+                              <td className="px-4 py-2 border-r border-ui-border/10 font-medium">{h.shortName || h.customerNum}</td>
                               <td className="px-4 py-2 border-r border-ui-border/10 truncate max-w-[120px]" title={h.fileName ?? ""}>{h.fileName}</td>
-                              <td className="px-4 py-2 border-r border-ui-border/10 font-bold text-brand-primary">{h.customerPo}</td>
-                              <td className="px-4 py-2 border-r border-ui-border/10 font-bold">{h.buyerName || h.customerNum}</td>
-                              <td className="px-4 py-2 border-r border-ui-border/10 uppercase truncate max-w-[150px]" title={h.customerName ?? ""}>{h.customerName}</td>
-                              <td className="px-4 py-2 border-r border-ui-border/10 font-mono">{h.datePo}</td>
-                              <td className="px-4 py-2 border-r border-ui-border/10 font-mono">{h.dateShip}</td>
+                              <td className="px-4 py-2 border-r border-ui-border/10 font-medium text-brand-primary">{h.customerPo}</td>
+                              <td className="px-4 py-2 border-r border-ui-border/10 font-medium">{h.buyerName || h.customerNum}</td>
+                              <td className="px-4 py-2 border-r text-sm border-ui-border/10 uppercase truncate max-w-[150px]" title={h.customerName ?? ""}>{h.customerName}</td>
+                              <td className="px-4 py-2 border-r border-ui-border/10 font-medium">{h.datePo}</td>
+                              <td className="px-4 py-2 border-r border-ui-border/10 font-medium">{h.dateShip}</td>
                               <td className="px-4 py-1.5 text-right font-bold text-emerald-600">{Number(h.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                               <td className="px-4 py-2 border-r border-ui-border/10 text-ui-muted">
                                 {h.createdAt ? new Date(h.createdAt).toLocaleDateString('th-TH') : "-"}
@@ -904,14 +904,14 @@ export function ImportAS400() {
                         <tbody className="divide-y divide-ui-border/10">
                           {detailData.map(d => (
                             <tr key={d.id} className="hover:bg-ui-bg/50 transition-colors whitespace-nowrap text-ui-text">
-                              <td className="px-4 py-1.5 font-bold">{d.seqNum}</td>
-                              <td className="px-4 py-1.5 font-bold">{d.productName}</td>
-                              <td className="px-4 py-1.5 font-bold">{d.unitMeasure || d.packSize || "-"}</td>
-                              <td className="px-4 py-1.5 text-left font-bold text-emerald-600">{d.Bar_Code_Item || "-"}</td>
-                              <td className="px-4 py-1.5 font-bold">{d.buyerProdCode || "-"}</td>
-                              <td className="px-4 py-1.5 font-bold">{d.vendorProdCode || "-"}</td>
-                              <td className="px-4 py-1.5 text-right font-bold">{Number(d.orderQty).toFixed(2)}</td>
-                              <td className="px-4 py-1.5 text-right font-bold text-emerald-600">{Number(d.unitPrice).toFixed(2)}</td>
+                              <td className="px-4 py-1.5 font-medium">{d.seqNum}</td>
+                              <td className="px-4 py-1.5 text-sm font-medium">{d.productName}</td>
+                              <td className="px-4 py-1.5 font-medium">{d.unitMeasure || d.packSize || "-"}</td>
+                              <td className="px-4 py-1.5 text-left font-medium text-emerald-600">{d.Bar_Code_Item || "-"}</td>
+                              <td className="px-4 py-1.5 font-medium">{d.buyerProdCode || "-"}</td>
+                              <td className="px-4 py-1.5 font-medium">{d.vendorProdCode || "-"}</td>
+                              <td className="px-4 py-1.5 text-right font-medium">{Number(d.orderQty).toFixed(2)}</td>
+                              <td className="px-4 py-1.5 text-right font-medium text-emerald-600">{Number(d.unitPrice).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right">{Number(d.freeQty || 0).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right">{Number(d.discount1 || 0).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right">{Number(d.discount2 || 0).toFixed(2)}</td>

@@ -102,8 +102,8 @@ export function AS400History() {
             <Database size={20} />
           </div>
           <div>
-            <h2 className="text-base font-bold text-emerald-500 uppercase tracking-tight">AS/400 HISTORY</h2>
-            <p className="text-[10px] text-ui-muted font-bold uppercase tracking-widest">ประวัติการนำเข้าข้อมูล (ถาวร)</p>
+            <h2 className="text-lg font-medium text-emerald-600 uppercase tracking-tight">AS/400 HISTORY</h2>
+            <p className="text-[10px] text-ui-muted uppercase tracking-widest">ประวัติการนำเข้าข้อมูล (ถาวร)</p>
           </div>
         </div>
 
@@ -259,15 +259,15 @@ export function AS400History() {
                             {isSelected && <Check size={8} />}
                           </div>
                         </td>
-                        <td className="px-3 py-2 border-r border-ui-border/10 font-bold">{h.shortName || h.customerNum}</td>
-                        <td className="px-3 py-2 border-r border-ui-border/10 truncate max-w-[100px]" title={h.fileName ?? ""}>{h.fileName}</td>
-                        <td className="px-3 py-2 border-r border-ui-border/10 font-bold text-emerald-600">{h.customerPo}</td>
-                        <td className="px-3 py-2 border-r border-ui-border/10 font-bold">{h.buyerName || h.customerNum}</td>
-                        <td className="px-3 py-2 border-r border-ui-border/10 uppercase truncate max-w-[150px]" title={h.customerName ?? ""}>{h.customerName}</td>
-                        <td className="px-3 py-2 border-r border-ui-border/10 font-mono">{h.datePo}</td>
-                        <td className="px-3 py-2 border-r border-ui-border/10 font-mono">{h.dateShip}</td>
-                        <td className="px-3 py-2 border-r border-ui-border/10 text-right font-bold text-emerald-600">{Number(h.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                        <td className="px-3 py-2 border-r border-ui-border/10 text-ui-muted text-xs">
+                        <td className="px-2 py-2 border-r border-ui-border/10 font-medium">{h.shortName || h.customerNum}</td>
+                        <td className="px-2 py-2 border-r border-ui-border/10 truncate max-w-[100px]" title={h.fileName ?? ""}>{h.fileName}</td>
+                        <td className="px-2 py-2 border-r border-ui-border/10 font-medium text-emerald-600 text-base">{h.customerPo}</td>
+                        <td className="px-2 py-2 border-r border-ui-border/10 font-medium text-base">{h.buyerName || h.customerNum}</td>
+                        <td className="px-2 py-2 border-r border-ui-border/10 uppercase truncate max-w-[150px] text-base" title={h.customerName ?? ""}>{h.customerName}</td>
+                        <td className="px-2 py-2 border-r border-ui-border/10 font-mono">{h.datePo}</td>
+                        <td className="px-2 py-2 border-r border-ui-border/10 font-mono">{h.dateShip}</td>
+                        <td className="px-2 py-2 border-r border-ui-border/10 text-right font-bold text-emerald-600">{Number(h.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                        <td className="px-2 py-2 border-r border-ui-border/10 text-ui-muted text-xs">
                           {h.as400ImportedAt ? new Date(h.as400ImportedAt).toLocaleString('th-TH') : "-"}
                         </td>
                         <td className="px-3 py-3 border-r border-ui-border/10 text-center">
@@ -337,7 +337,7 @@ export function AS400History() {
                 <div className="flex bg-ui-bg p-0.5 rounded-lg border border-ui-border">
                   <button 
                     onClick={() => setActiveBottomTab("items")}
-                    className={`px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${activeBottomTab === "items" ? "bg-brand-primary text-white shadow-sm" : "text-ui-muted hover:text-ui-text"}`}
+                    className={`px-3 py-1 rounded-md text-[14px] font-black uppercase transition-all ${activeBottomTab === "items" ? "bg-brand-primary text-white shadow-sm" : "text-ui-muted hover:text-ui-text"}`}
                   >
                     รายการสินค้า (History)
                   </button>
@@ -491,15 +491,16 @@ export function AS400History() {
                 <tbody className="divide-y divide-ui-border/10">
                   {detailData.length > 0 ? (
                     detailData.map(d => (
-                      <tr key={d.id} className="hover:bg-ui-bg/50 transition-colors whitespace-nowrap text-ui-text">
-                        <td className="px-4 py-1.5 font-bold">{d.seqNum}</td>
-                        <td className="px-4 py-1.5 font-bold truncate max-w-[200px]">{d.productName}</td>
+                      <tr key={d.id} className="hover:bg-ui-bg/50 transition-colors whitespace-nowrap text-sm">
+                        <td className="px-4 py-1.5 font-medium">{d.seqNum}</td>
+                        <td className="px-4 py-1.5 truncate max-w-[200px] text-base">{d.productName}</td>
                         <td className="px-4 py-1.5">{d.packSize || "-"}</td>
-                        <td className="px-4 py-1.5 font-mono font-bold text-brand-primary">{d.Bar_Code_Item}</td>
-                        <td className="px-4 py-1.5 font-bold">{d.buyerProdCode || "-"}</td>
-                        <td className="px-4 py-1.5 font-bold">{d.vendorProdCode || "-"}</td>
-                        <td className="px-4 py-1.5 text-right font-bold">{Number(d.orderQty || 0).toFixed(2)}</td>
-                        <td className="px-4 py-1.5 text-right font-bold text-emerald-600">{Number(d.unitPrice || 0).toFixed(2)}</td>
+                        <td className="px-4 py-1.5 font-medium text-brand-primary">{d.Bar_Code_Item}</td>
+                        <td className="px-4 py-1.5 font-medium">{d.buyerProdCode || "-"}</td>
+                        <td className="px-4 py-1.5 font-medium">{d.vendorProdCode || "-"}</td>
+<td className="px-4 py-1.5 text-right">
+  {Number(d.orderQty || 0).toFixed(2)}
+</td>                        <td className="px-4 py-1.5 text-right text-emerald-600">{Number(d.unitPrice || 0).toFixed(2)}</td>
                         <td className="px-4 py-1.5 text-right">{Number(d.freeQty || 0).toFixed(2)}</td>
                         <td className="px-4 py-1.5 text-right">{Number(d.discount1 || 0).toFixed(2)}</td>
                         <td className="px-4 py-1.5 text-right">{Number(d.discount2 || 0).toFixed(2)}</td>
@@ -507,7 +508,7 @@ export function AS400History() {
                         <td className="px-4 py-1.5 text-right font-bold">{Number(d.netAmount || 0).toFixed(2)}</td>
 
                         {/* รอข้อมูลมาเติม */}
-                        <td className="px-4 py-1.5 text-right">{(d.checkBarInt || "-")}</td>  
+                        {/* <td className="px-4 py-1.5 text-right">{(d.checkBarInt || "-")}</td>   */}
                         <td className="px-4 py-1.5 text-right">{d.checkNameOldProd || "-"}</td>
                         <td className="px-4 py-1.5 text-right">{d.changeItem || "-"}</td>
                         <td className="px-4 py-1.5 text-right">{d.changeProdName || "-"}</td>
