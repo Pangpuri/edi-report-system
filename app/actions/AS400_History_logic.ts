@@ -42,6 +42,7 @@ export interface AS400Log {
 
 export interface EDLHistoryData {
   id: number;
+  headerId: number | null;
   customerPo: string | null;
   seqNum: string | null;
   Bar_Code_Item: string | null;
@@ -72,7 +73,7 @@ export function useAS400History() {
   const [activeBottomTab, setActiveBottomTab] = useState<"items" | "logs">("items");
   
   const [isPending, startTransition] = useTransition();
-  const [detailCache, setDetailCache] = useState<Record<string, EDLHistoryData[]>>({});
+  const [detailCache, setDetailCache] = useState<Record<number, EDLHistoryData[]>>({});
   const [logCache, setLogCache] = useState<Record<number, AS400Log[]>>({});
 
   const [isLoading, setIsLoading] = useState(true);
@@ -106,14 +107,14 @@ export function useAS400History() {
     }
 
     const syncDetailsAndLogs = async () => {
-      const uncachedDetails = selectedHeaders.filter(h => !detailCache[`${h.customerPo}|${h.fileName}`]);
+      const uncachedDetails = selectedHeaders.filter(h => !detailCache[h.id]);
       if (uncachedDetails.length > 0) {
         setIsDetailLoading(true);
-        const items = uncachedDetails.map(h => ({ customerPo: h.customerPo ?? "", fileName: h.fileName ?? "" }));
-        const newDetails = await getEDLHistoryByHeadersAction(items);
-        const newEntries: Record<string, EDLHistoryData[]> = {};
+        const historyIds = uncachedDetails.map(h => h.id);
+        const newDetails = await getEDLHistoryByHeadersAction(historyIds);
+        const newEntries: Record<number, EDLHistoryData[]> = {};
         uncachedDetails.forEach(h => {
-          newEntries[`${h.customerPo}|${h.fileName}`] = (newDetails as unknown as EDLHistoryData[]).filter(d => d.customerPo === h.customerPo && d.fileName === h.fileName);
+          newEntries[h.id] = (newDetails as unknown as EDLHistoryData[]).filter(d => d.headerId === h.id);
         });
         setDetailCache(prev => ({ ...prev, ...newEntries }));
       }
@@ -134,7 +135,7 @@ export function useAS400History() {
       setIsLogsLoading(false);
 
       startTransition(() => {
-        const allDetailsRaw = selectedHeaders.flatMap(h => detailCache[`${h.customerPo}|${h.fileName}`] || []);
+        const allDetailsRaw = selectedHeaders.flatMap(h => detailCache[h.id] || []);
         const allDetails = Array.from(new Map(allDetailsRaw.map(d => [d.id, d])).values());
         setDetailData(allDetails);
 

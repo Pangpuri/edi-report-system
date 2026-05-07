@@ -14,7 +14,7 @@ import {
   Trash2
 } from "lucide-react";
 
-import { useAS400History } from "../../app/actions/AS400_History_logic";
+import { useAS400History } from "@/app/actions/as400_history_logic";
 
 export function AS400History() {
   // --- ชุดตัวแปร (States) สำหรับปรับขนาดคอลัมน์ ---
@@ -141,10 +141,10 @@ export function AS400History() {
             <span className="text-[10px] font-bold text-ui-muted uppercase">{filteredHeaders.length} รายการ</span>
           </div>
           <div className="flex-1 overflow-auto custom-scrollbar">
-            <table className="w-full text-left text-sm border-collapse min-w-[1500px] table-fixed">
+            <table className="w-full text-left text-xs border-collapse min-w-[1500px] table-fixed">
               <thead className="sticky top-0 bg-ui-bg border-b border-ui-border z-10">
-                <tr className="font-bold uppercase text-ui-muted whitespace-nowrap text-[13px]">
-                  <th className="px-3 py-2 border-r border-ui-border w-10 text-center relative">เลือก</th>
+                <tr className="font-medium uppercase text-ui-muted whitespace-nowrap">
+                  <th className="px-4 py-2 border-r border-ui-border w-10 text-center relative">เลือก</th>
                   
                   <th style={{ width: headerWidths['customerNum'] || 100 }} className="px-3 py-2 border-r border-ui-border relative group">
                     <span className="truncate block">ลูกค้า</span>
@@ -252,22 +252,22 @@ export function AS400History() {
                       <tr 
                         key={h.id} 
                         onClick={() => handleSelectHeader(h)} 
-                        className={`cursor-pointer transition-all border-l-4 whitespace-nowrap leading-relaxed ${isSelected ? "bg-emerald-500/10 border-l-emerald-500 font-bold" : "hover:bg-emerald-500/5 border-l-transparent"}`}
+                              className={`cursor-pointer transition-all border-l-2 whitespace-nowrap font-medium ${isSelected ? "bg-emerald-500/10 border-l-emerald-500" : "hover:bg-emerald-500/5 border-l-transparent"}`}
                       >
-                        <td className="px-3 py-2 border-r border-ui-border/10 text-center">
+                        <td className="px-4 py-2 border-r border-ui-border/10 text-center">
                           <div className={`w-5 h-5 rounded border flex items-center justify-center mx-auto transition-all ${isSelected ? "bg-emerald-500 border-emerald-500 text-white shadow-md" : "border-ui-border bg-ui-bg"}`}>
                             {isSelected && <Check size={8} />}
                           </div>
                         </td>
-                        <td className="px-2 py-2 border-r border-ui-border/10 font-medium">{h.shortName || h.customerNum}</td>
-                        <td className="px-2 py-2 border-r border-ui-border/10 truncate max-w-[100px]" title={h.fileName ?? ""}>{h.fileName}</td>
-                        <td className="px-2 py-2 border-r border-ui-border/10 font-medium text-emerald-600 text-base">{h.customerPo}</td>
-                        <td className="px-2 py-2 border-r border-ui-border/10 font-medium text-base">{h.buyerName || h.customerNum}</td>
-                        <td className="px-2 py-2 border-r border-ui-border/10 uppercase truncate max-w-[150px] text-base" title={h.customerName ?? ""}>{h.customerName}</td>
-                        <td className="px-2 py-2 border-r border-ui-border/10 font-mono">{h.datePo}</td>
-                        <td className="px-2 py-2 border-r border-ui-border/10 font-mono">{h.dateShip}</td>
-                        <td className="px-2 py-2 border-r border-ui-border/10 text-right font-bold text-emerald-600">{Number(h.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                        <td className="px-2 py-2 border-r border-ui-border/10 text-ui-muted text-xs">
+                        <td className="px-4 py-2 border-r border-ui-border/10">{h.shortName || h.customerNum}</td>
+                        <td className="px-2 py-1 border-r border-ui-border/10 truncate max-w-[100px]" title={h.fileName ?? ""}>{h.fileName}</td>
+                        <td className="px-2 py-1 border-r border-ui-border/10 font-medium text-emerald-600 text-sm">{h.customerPo}</td>
+                        <td className="px-2 py-1 border-r border-ui-border/10 font-medium text-sm">{h.buyerName || h.customerNum}</td>
+                        <td className="px-2 py-1 border-r border-ui-border/10 uppercase truncate max-w-[150px] text-sm" title={h.customerName ?? ""}>{h.customerName}</td>
+                        <td className="px-2 py-1 border-r border-ui-border/10 text-sm">{h.datePo}</td>
+                        <td className="px-2 py-1 border-r border-ui-border/10 text-sm">{h.dateShip}</td>
+                        <td className="px-2 py-1 border-r border-ui-border/10 text-right font-bold text-emerald-600">{Number(h.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                        <td className="px-2 py-1 border-r border-ui-border/10 text-ui-muted text-sm">
                           {h.as400ImportedAt ? new Date(h.as400ImportedAt).toLocaleString('th-TH') : "-"}
                         </td>
                         <td className="px-3 py-3 border-r border-ui-border/10 text-center">
@@ -279,7 +279,7 @@ export function AS400History() {
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               className={`
-                                min-w-[130px] px-4 py-2 rounded-xl text-[13px] font-black uppercase tracking-tight
+                                min-w-[130px] px-4 py-2 rounded-xl text-[13px] font-medium uppercase tracking-tight
                                 transition-colors duration-500 border-2 shadow-sm
                                 flex items-center justify-center gap-2
                                 ${h.as400Status 
@@ -308,7 +308,7 @@ export function AS400History() {
                               <motion.div 
                                 initial={{ opacity: 0 }}
                                 whileHover={{ opacity: 1 }}
-                                className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-ui-text text-white text-[11px] font-bold rounded-lg shadow-xl pointer-events-none whitespace-nowrap z-50 border border-white/10"
+                                className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-ui-text text-white text-[11px] font-medium rounded-lg shadow-xl pointer-events-none whitespace-nowrap z-50 border border-white/10"
                               >
                                 คลิกเพื่อสลับสถานะ
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-ui-text" />
@@ -383,7 +383,7 @@ export function AS400History() {
             ) : activeBottomTab === "items" ? (
               <table className="w-full text-left border-collapse min-w-[1800px] table-fixed">
                 <thead className="sticky top-0 bg-ui-bg border-b border-ui-border z-20">
-                  <tr className="font-black uppercase text-ui-muted whitespace-nowrap">
+                  <tr className="font-medium uppercase text-ui-muted whitespace-nowrap">
                     <th style={{ width: detailWidths['seqNum'] || 60 }} className="px-4 py-2 border-r border-ui-border relative group">
                       <span className="truncate block">ลำดับ</span>
                       <div onMouseDown={(e) => handleResize('detail', 'seqNum', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
@@ -456,7 +456,7 @@ export function AS400History() {
                         <div className="w-[1.5px] h-full bg-slate-400/50 dark:bg-blue-400" />
                       </div>
                     </th>                    
-                    <th style={{ width: detailWidths['netAmount'] || 120 }} className="px-4 py-2 border-r border-ui-border text-right font-black text-emerald-600 relative group">
+                    <th style={{ width: detailWidths['netAmount'] || 120 }} className="px-4 py-2 border-r border-ui-border text-right font-medium text-emerald-600 relative group">
                       <span className="truncate block">จำนวนเงิน</span>
                       <div onMouseDown={(e) => handleResize('detail', 'netAmount', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
                         <div className="w-[1.5px] h-full bg-slate-400/50 dark:bg-blue-400" />
@@ -490,25 +490,25 @@ export function AS400History() {
                 </thead>
                 <tbody className="divide-y divide-ui-border/10">
                   {detailData.length > 0 ? (
-                    detailData.map(d => (
-                      <tr key={d.id} className="hover:bg-ui-bg/50 transition-colors whitespace-nowrap text-sm">
+                    // Deduplicate detail data by id to prevent duplicate display when multiple headers are selected
+                    Array.from(new Map(detailData.map(d => [d.id, d])).values()).map(d => (
+                      <tr key={d.id} className="hover:bg-ui-bg/50 transition-colors whitespace-nowrap text-ui-text font-medium">
                         <td className="px-4 py-1.5 font-medium">{d.seqNum}</td>
-                        <td className="px-4 py-1.5 truncate max-w-[200px] text-base">{d.productName}</td>
+                        <td className="px-4 py-1.5 truncate max-w-[200px] text-xs">{d.productName}</td>
                         <td className="px-4 py-1.5">{d.packSize || "-"}</td>
-                        <td className="px-4 py-1.5 font-medium text-brand-primary">{d.Bar_Code_Item}</td>
-                        <td className="px-4 py-1.5 font-medium">{d.buyerProdCode || "-"}</td>
-                        <td className="px-4 py-1.5 font-medium">{d.vendorProdCode || "-"}</td>
-<td className="px-4 py-1.5 text-right">
-  {Number(d.orderQty || 0).toFixed(2)}
-</td>                        <td className="px-4 py-1.5 text-right text-emerald-600">{Number(d.unitPrice || 0).toFixed(2)}</td>
+                        <td className="px-4 py-1.5 text-brand-primary">{d.Bar_Code_Item}</td>
+                        <td className="px-4 py-1.5">{d.buyerProdCode || "-"}</td>
+                        <td className="px-4 py-1.5">{d.vendorProdCode || "-"}</td>
+                        <td className="px-4 py-1.5 text-right">{Number(d.orderQty || 0).toFixed(2)}</td>
+                        <td className="px-4 py-1.5 text-right text-emerald-600">{Number(d.unitPrice || 0).toFixed(2)}</td>
                         <td className="px-4 py-1.5 text-right">{Number(d.freeQty || 0).toFixed(2)}</td>
                         <td className="px-4 py-1.5 text-right">{Number(d.discount1 || 0).toFixed(2)}</td>
                         <td className="px-4 py-1.5 text-right">{Number(d.discount2 || 0).toFixed(2)}</td>
                         <td className="px-4 py-1.5 text-right">{Number(d.discount3 || 0).toFixed(2)}</td>
-                        <td className="px-4 py-1.5 text-right font-bold">{Number(d.netAmount || 0).toFixed(2)}</td>
+                        <td className="px-4 py-1.5 text-right text-brand-primary">{Number(d.netAmount || 0).toFixed(2)}</td>
 
-                        {/* รอข้อมูลมาเติม */}
-                        {/* <td className="px-4 py-1.5 text-right">{(d.checkBarInt || "-")}</td>   */}
+                        {/* ส่วนที่รอลอจิก */}
+                        {/* <td className="px-4 py-1.5 text-right">{d.checkBarInt || "-"}</td> */}
                         <td className="px-4 py-1.5 text-right">{d.checkNameOldProd || "-"}</td>
                         <td className="px-4 py-1.5 text-right">{d.changeItem || "-"}</td>
                         <td className="px-4 py-1.5 text-right">{d.changeProdName || "-"}</td>

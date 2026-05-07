@@ -219,50 +219,36 @@ export async function getImportedAS400Data() {
   }
 }
 
-export async function getEDLHistoryByHeadersAction(items: { customerPo: string; fileName: string }[]) {
+export async function getEDLHistoryByHeadersAction(headerIds: number[]) {
   try {
-    if (items.length === 0) return [];
+    if (headerIds.length === 0) return [];
 
-    const results: any[] = [];
-    const processedIds = new Set<number>();
-
-    for (const item of items) {
-      const details = await db.select({
-        id: TEDL.id,
-        customerPo: TEDL.Customer_PO,
-        customerNum: TEDL.Customer_Num,
-        seqNum: TEDL.Line_Num,
-        productName: TEDL.Product_Name,
-        packSize: TEDL.Pack_Size,
-        Bar_Code_Item: TEDL.Bar_Code_Item,
-        buyerProdCode: TEDL.Buyer_Prod_Code,
-        vendorProdCode: TEDL.Vendor_Prod_Code,
-        orderQty: TEDL.Qty_Order,
-        unitPrice: TEDL.Price_Unit,
-        freeQty: TEDL.Free_Qty,
-        discount1: TEDL.Discount_1,
-        discount2: TEDL.Discount_2,
-        discount3: TEDL.Discount_3,
-        netAmount: TEDL.Net_Amount,
-        fileName: TEDL.File_Name,
-        checkBarInt: TEDL.Bar_Code_Item, // Map field for UI if needed
-        changeItem: TEDL.Change_Item,
-        changeProdName: TEDL.Change_Prod_Name,
-      })
-      .from(TEDL)
-      .where(and(
-        eq(TEDL.Customer_PO, item.customerPo),
-        eq(TEDL.File_Name, item.fileName)
-      ))
-      .orderBy(sql`CAST(${TEDL.Line_Num} AS INTEGER)`);
-
-      for (const d of details) {
-        if (!processedIds.has(d.id)) {
-          results.push(d);
-          processedIds.add(d.id);
-        }
-      }
-    }
+    const results = await db.select({
+      id: TEDL.id,
+      headerId: TEDL.Header_Id,
+      customerPo: TEDL.Customer_PO,
+      customerNum: TEDL.Customer_Num,
+      seqNum: TEDL.Line_Num,
+      productName: TEDL.Product_Name,
+      packSize: TEDL.Pack_Size,
+      Bar_Code_Item: TEDL.Bar_Code_Item,
+      buyerProdCode: TEDL.Buyer_Prod_Code,
+      vendorProdCode: TEDL.Vendor_Prod_Code,
+      orderQty: TEDL.Qty_Order,
+      unitPrice: TEDL.Price_Unit,
+      freeQty: TEDL.Free_Qty,
+      discount1: TEDL.Discount_1,
+      discount2: TEDL.Discount_2,
+      discount3: TEDL.Discount_3,
+      netAmount: TEDL.Net_Amount,
+      fileName: TEDL.File_Name,
+      checkBarInt: TEDL.Bar_Code_Item,
+      changeItem: TEDL.Change_Item,
+      changeProdName: TEDL.Change_Prod_Name,
+    })
+    .from(TEDL)
+    .where(inArray(TEDL.Header_Id, headerIds))
+    .orderBy(sql`CAST(${TEDL.Line_Num} AS INTEGER)`);
 
     return results;
   } catch (error) {

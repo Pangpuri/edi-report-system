@@ -705,7 +705,7 @@ export function ImportAS400() {
                   <div className="flex-1 overflow-auto custom-scrollbar">
                     <table className="w-full text-left text-xs border-collapse min-w-[1200px] table-fixed">
                       <thead className="sticky top-0 bg-ui-bg border-b border-ui-border z-10">
-                        <tr className="font-black uppercase text-ui-muted whitespace-nowrap">
+                        <tr className="font-medium uppercase text-ui-muted whitespace-nowrap">
                           <th className="px-2 py-2 border-r border-ui-border w-[60px] text-center relative">เลือก</th>
                           
                           <th style={{ width: headerWidths['customerNum'] || 100 }} className="px-4 py-2 border-r border-ui-border relative group">
@@ -781,29 +781,29 @@ export function ImportAS400() {
                             <tr 
                               key={h.id} 
                               onClick={() => handleSelectHeader(h)} 
-                              className={`cursor-pointer transition-all border-l-2 whitespace-nowrap ${isSelected ? "bg-brand-primary/10 border-l-brand-primary font-bold" : "hover:bg-brand-primary/5 border-l-transparent"}`}
+                              className={`cursor-pointer transition-all border-l-2 whitespace-nowrap font-medium ${isSelected ? "bg-brand-primary/10 border-l-brand-primary" : "hover:bg-brand-primary/5 border-l-transparent"}`}
                             >
                               <td className="px-4 py-2 border-r border-ui-border/10 text-center">
                                 <div className={`w-4 h-4 rounded border flex items-center justify-center mx-auto transition-all ${isSelected ? "bg-brand-primary border-brand-primary text-white shadow-md" : "border-ui-border bg-ui-bg"}`}>
                                   {isSelected && <CheckCircle2 size={10} />}
                                 </div>
                               </td>
-                              <td className="px-4 py-2 border-r border-ui-border/10 font-medium">{h.shortName || h.customerNum}</td>
+                              <td className="px-4 py-2 border-r border-ui-border/10">{h.shortName || h.customerNum}</td>
                               <td className="px-4 py-2 border-r border-ui-border/10 truncate max-w-[120px]" title={h.fileName ?? ""}>{h.fileName}</td>
-                              <td className="px-4 py-2 border-r border-ui-border/10 font-medium text-brand-primary">{h.customerPo}</td>
-                              <td className="px-4 py-2 border-r border-ui-border/10 font-medium">{h.buyerName || h.customerNum}</td>
+                              <td className="px-4 py-2 border-r border-ui-border/10 text-brand-primary">{h.customerPo}</td>
+                              <td className="px-4 py-2 border-r border-ui-border/10">{h.buyerName || h.customerNum}</td>
                               <td className="px-4 py-2 border-r text-sm border-ui-border/10 uppercase truncate max-w-[150px]" title={h.customerName ?? ""}>{h.customerName}</td>
-                              <td className="px-4 py-2 border-r border-ui-border/10 font-medium">{h.datePo}</td>
-                              <td className="px-4 py-2 border-r border-ui-border/10 font-medium">{h.dateShip}</td>
-                              <td className="px-4 py-1.5 text-right font-bold text-emerald-600">{Number(h.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                              <td className="px-4 py-2 border-r border-ui-border/10">{h.datePo}</td>
+                              <td className="px-4 py-2 border-r border-ui-border/10">{h.dateShip}</td>
+                              <td className="px-4 py-1.5 text-right font-medium text-emerald-600">{Number(h.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                               <td className="px-4 py-2 border-r border-ui-border/10 text-ui-muted">
                                 {h.createdAt ? new Date(h.createdAt).toLocaleDateString('th-TH') : "-"}
                               </td>
                               <td className="px-4 py-2 text-center">
                                 {h.as400Status ? (
-                                  <span className="text-[11px] font-black text-red-600 uppercase">เข้า AS/400 แล้ว</span>
+                                  <span className="text-[11px] font-medium text-red-600 uppercase">เข้า AS/400 แล้ว</span>
                                 ) : (
-                                  <span className="text-[11px] font-bold text-ui-muted uppercase opacity-50">รอนำเข้า</span>
+                                  <span className="text-[11px] font-medium text-ui-muted uppercase opacity-50">รอนำเข้า</span>
                                 )}
                               </td>
                             </tr>
@@ -834,7 +834,7 @@ export function ImportAS400() {
                     {selectedHeaders.length > 0 ? (
                       <table className="w-full text-left border-collapse min-w-[1400px] table-fixed">
                         <thead className="sticky top-0 bg-ui-bg border-b border-ui-border">
-                          <tr className="font-black uppercase text-ui-muted whitespace-nowrap">
+                          <tr className="font-medium uppercase text-ui-muted whitespace-nowrap">
                             <th style={{ width: detailWidths['seqNum'] || 60 }} className="px-4 py-2 border-r border-ui-border relative group">
                               ลำดับ
                               <div onMouseDown={(e) => handleResize('detail', 'seqNum', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
@@ -903,19 +903,19 @@ export function ImportAS400() {
                         </thead>
                         <tbody className="divide-y divide-ui-border/10">
                           {detailData.map(d => (
-                            <tr key={d.id} className="hover:bg-ui-bg/50 transition-colors whitespace-nowrap text-ui-text">
+                            <tr key={d.id} className="hover:bg-ui-bg/50 transition-colors whitespace-nowrap text-ui-text font-medium">
                               <td className="px-4 py-1.5 font-medium">{d.seqNum}</td>
-                              <td className="px-4 py-1.5 text-sm font-medium">{d.productName}</td>
-                              <td className="px-4 py-1.5 font-medium">{d.unitMeasure || d.packSize || "-"}</td>
-                              <td className="px-4 py-1.5 text-left font-medium text-emerald-600">{d.Bar_Code_Item || "-"}</td>
-                              <td className="px-4 py-1.5 font-medium">{d.buyerProdCode || "-"}</td>
-                              <td className="px-4 py-1.5 font-medium">{d.vendorProdCode || "-"}</td>
-                              <td className="px-4 py-1.5 text-right font-medium">{Number(d.orderQty).toFixed(2)}</td>
-                              <td className="px-4 py-1.5 text-right font-medium text-emerald-600">{Number(d.unitPrice).toFixed(2)}</td>
+                              <td className="px-4 py-1.5 text-xs">{d.productName}</td>
+                              <td className="px-4 py-1.5">{d.unitMeasure || d.packSize || "-"}</td>
+                              <td className="px-4 py-1.5 text-left text-emerald-600">{d.Bar_Code_Item || "-"}</td>
+                              <td className="px-4 py-1.5">{d.buyerProdCode || "-"}</td>
+                              <td className="px-4 py-1.5">{d.vendorProdCode || "-"}</td>
+                              <td className="px-4 py-1.5 text-right">{Number(d.orderQty).toFixed(2)}</td>
+                              <td className="px-4 py-1.5 text-right text-emerald-600">{Number(d.unitPrice).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right">{Number(d.freeQty || 0).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right">{Number(d.discount1 || 0).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right">{Number(d.discount2 || 0).toFixed(2)}</td>
-                              <td className="px-4 py-1.5 text-right font-bold text-emerald-600">{Number(d.netAmount || 0).toFixed(2)}</td>
+                              <td className="px-4 py-1.5 text-right font-medium text-emerald-600">{Number(d.netAmount || 0).toFixed(2)}</td>
                               <td className="px-4 py-1.5 text-right text-ui-muted truncate max-w-[100px]" title={d.fileName ?? ""}>{d.fileName}</td>
                             </tr>
                           ))}
