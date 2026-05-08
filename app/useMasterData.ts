@@ -91,12 +91,13 @@ export function useMasterData(activeTab: string) {
     });
   }, [data, debouncedQuery]);
 
-  // 🔢 Reset page to 1 on search result change
+  
+  //ถ้าไม่มีส่วนนี้ การค้นหาจะไม่เปลี่ยนหน้าเพิ่มเติม ช่วยค้นหาแบบข้ามหน้า
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedQuery]);
 
-  // 🔢 Slice data for current page
+  // ช่วยค้นหาแบบข้ามหน้า
   const totalPages = Math.ceil(allFilteredData.length / itemsPerPage) || 1;
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
