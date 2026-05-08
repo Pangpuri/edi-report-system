@@ -21,6 +21,7 @@ export interface EDHData {
   as400Status: boolean | null;
   as400ImportedAt: Date | null;
   createdAt: Date | null;
+  createdAtDisplay?: string | null;
 }
 
 export interface EDLData {

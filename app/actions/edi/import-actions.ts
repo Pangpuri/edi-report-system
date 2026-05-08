@@ -236,7 +236,7 @@ const dCount = result.detailCount ?? 0;
 export async function getEDLByHeadersAction(items: { customerPo: string; fileName: string }[]): Promise<EDLDetail[]> {
   if (items.length === 0) return [];
 
-  // ✅ กำจัด any ตัวที่ 1: ระบุ Type ให้ results
+  
   const results: EDLDetail[] = [];
   const processedIds = new Set<number>();
 
@@ -308,6 +308,7 @@ export async function getEDHData() {
         AND TRIM(h."File_Name") = TRIM(${EDH_temp.File_Name})
       )`,
       createdAt: EDH_temp.Created_At,
+      createdAtDisplay: sql<string>`TO_CHAR(${EDH_temp.Created_At}, 'DD/MM/YYYY HH24:MI:SS')`,
     })
     .from(EDH_temp)
     .leftJoin(customer, sql`TRIM(${EDH_temp.Customer_Num}) = TRIM(${customer.customer_code})`)

@@ -199,7 +199,7 @@ export function DataViewTab({
                       {Number(h.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}
                     </td>
                     <td className="px-4 py-2 border-r border-ui-border/10 text-ui-muted">
-                      {h.createdAt ? new Date(h.createdAt).toLocaleDateString('th-TH') : "-"}
+                      {h.createdAtDisplay || (h.createdAt ? new Date(h.createdAt).toLocaleString('th-TH') : "-")}
                     </td>
                     <td className="px-4 py-2 text-center">
                       {h.as400Status ?  (
