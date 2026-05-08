@@ -94,7 +94,7 @@ function DashboardContent() {
       handleDelete={handleDelete}
       refresh={masterData.refresh}
     >
-      {/* 🏷️ ส่วนหัวและส่วนค้นหา - ปรับให้กระชับขึ้น */}
+      {/* ส่วนหัวและส่วนค้นหา - ปรับให้กระชับขึ้น */}
       <div className="bg-ui-card p-4 md:p-6 rounded-2xl border border-ui-border shadow-md relative z-[40] mb-4">
         <DashboardHeader 
           activeTab={activeTab}
@@ -112,7 +112,7 @@ function DashboardContent() {
         />
       </div>
 
-      {/* 🏷️ ส่วนแสดงเนื้อหาหลัก - ลบความเทอะทะ */}
+      {/* ส่วนแสดงเนื้อหาหลัก - ลบความเทอะทะ */}
       <DashboardMainContent 
         viewMode={viewMode}
         activeTab={activeTab}
