@@ -41,7 +41,7 @@ export function AddProductForm({ onSuccess, initialValues }: AddProductFormProps
 
       if (result.success) {
         showToast(isEdit ? "อัปเดตข้อมูลสินค้าสำเร็จ! 📦✨" : "บันทึกข้อมูลสินค้าสำเร็จ! 📦✨", "success");
-        if (!isEdit) reset(); // ถ้าเป็น Add ค่อย Reset ถ้า Edit ไม่ต้องก็ได้ฮะ
+        if (!isEdit) reset(); // ถ้าเป็น Add ค่อย Reset ถ้า Edit ไม่ต้องก็ได้
         onSuccess?.();
       } else {
         showToast(`${result.error}`, "error");
@@ -56,7 +56,7 @@ export function AddProductForm({ onSuccess, initialValues }: AddProductFormProps
     const value = watch(id) || "";
     return (
       <div className="space-y-1">
-        <div className="flex justify-between text-[11px]">
+        <div className="flex justify-between text-[14px]">
           <label className="text-ui-muted font-medium">{label}</label>
           <span className="text-ui-muted/60">{value.length}/{maxLength}</span>
         </div>

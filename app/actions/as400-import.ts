@@ -76,10 +76,15 @@ export async function uploadAS400FilesAction(formData: FormData): Promise<Import
 
     let count = 0;
     for (const file of files) {
+      if (!file.name.toLowerCase().endsWith(".txt")) continue;
       const buffer = Buffer.from(await file.arrayBuffer());
       const filePath = path.join(STAGING_PATH, file.name);
       fs.writeFileSync(filePath, buffer);
       count++;
+    }
+
+    if (count === 0 && files.length > 0) {
+      return { success: false, message: "ไม่มีไฟล์ .TXT ที่ถูกต้องสำหรับการอัปโหลด" };
     }
 
     return { success: true, message: `อัปโหลด ${count} ไฟล์เข้า Staging สำเร็จ` };
@@ -128,7 +133,7 @@ export async function fetchBranchFilesAction(branchId: number): Promise<ImportRe
 
     const entries = fs.readdirSync(sourcePath, { withFileTypes: true });
     const targetFiles = entries.filter(e => 
-      e.isFile() && (e.name.toLowerCase().endsWith(".txt") || e.name.toLowerCase().endsWith(".tab") )
+      e.isFile() && e.name.toLowerCase().endsWith(".txt")
     );
 
     let fetchedCount = 0;
@@ -324,7 +329,7 @@ export async function getStagingFilesAction() {
       .filter(entry => {
         const isFile = entry.isFile();
         const name = entry.name.toLowerCase();
-        return isFile && (name.endsWith(".txt") || name.endsWith(".tab"));
+        return isFile && name.endsWith(".txt");
       })
       .map(entry => {
         const stats = fs.statSync(path.join(STAGING_PATH, entry.name));
@@ -357,7 +362,8 @@ export async function getRawFileArchivesAction() {
     storagePath: rawFileArchives.storagePath,
     branchId: rawFileArchives.branchId,
     uploadedAt: rawFileArchives.uploadedAt,
-    uploadedAtDisplay: sql<string>`TO_CHAR(${rawFileArchives.uploadedAt} + interval '7 hours', 'DD/MM/YYYY HH24:MI:SS')`,
+    //อันนี้ต้อง + 7 ชั่วโมง เพื่อให้เวลาตรง
+    uploadedAtDisplay: sql<string>`TO_CHAR(${rawFileArchives.uploadedAt} + interval '7 hours', 'DD/MM/YYYY HH24:MI:SS')`, 
   })
   .from(rawFileArchives)
   .orderBy(desc(rawFileArchives.uploadedAt));

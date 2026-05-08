@@ -207,10 +207,27 @@ export function ImportAS400() {
   const processUpload = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
 
-    const formData = new FormData();
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    const validFiles: File[] = [];
+    const oversizedFiles: string[] = [];
+
     for (let i = 0; i < files.length; i++) {
-      formData.append("files", files[i]);
+      const file = files[i];
+      if (file.size > MAX_SIZE) {
+        oversizedFiles.push(file.name);
+      } else {
+        validFiles.push(file);
+      }
     }
+
+    if (oversizedFiles.length > 0) {
+      showToast(`ไฟล์มีขนาดใหญ่เกิน 10MB: ${oversizedFiles.join(", ")}`, "error");
+    }
+
+    if (validFiles.length === 0) return;
+
+    const formData = new FormData();
+    validFiles.forEach((file) => formData.append("files", file));
 
     setIsImporting(true);
     try {
@@ -410,7 +427,7 @@ export function ImportAS400() {
 
   // จัดการเรื่องการลบไฟล์ในหน้า Archives (ประวัติไฟล์ดิบ)
   const handleDeleteArchive = async (id: number, name: string) => {
-    if (!confirm(`ยืนยันการลบไฟล์สำรอง ${name} ออกจากระบบถาวร?`)) return;
+    if (!confirm(`ยืนยันการลบไฟล์สำรอง ${name} ออกจากระบบ?`)) return;
     setIsImporting(true);
     try {
       const res = await deleteRawArchiveAction(id);
@@ -440,7 +457,7 @@ export function ImportAS400() {
 
   const handleDeleteSelectedArchives = async () => {
     if (selectedArchives.length === 0) return;
-    if (!confirm(`ยืนยันการลบไฟล์สำรองที่เลือกจำนวน ${selectedArchives.length} รายการออกจากระบบถาวร?`)) return;
+    if (!confirm(`ยืนยันการลบไฟล์สำรองที่เลือกจำนวน ${selectedArchives.length} รายการออกจากระบบ?`)) return;
 
     setIsImporting(true);
     let successCount = 0;
@@ -471,7 +488,7 @@ export function ImportAS400() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      // หน่วงเวลาเล็กน้อยเพื่อไม่ให้ Browser บล็อกการโหลดรัวๆ
+      // หน่วงเวลาเล็กน้อยเพื่อไม่ให้ Browser บล็อกการโหลดรัวๆ อันนี้กันแตก
       await new Promise(resolve => setTimeout(resolve, 300));
     }
   };
@@ -577,7 +594,7 @@ export function ImportAS400() {
             <Globe size={20} />
           </div>
           <div>
-            <h2 className="text-sm font-black text-brand-primary uppercase tracking-tight">EDI NATIONWIDE CENTER</h2>
+            <h2 className="text-sm font-black text-brand-primary uppercase tracking-tight">ระบบนำเข้า และจัดการไฟล์ EDI</h2>
             <p className="text-[8px] text-ui-muted font-bold uppercase tracking-widest">Staging & ISP Filter</p>
           </div>
         </div>
@@ -591,7 +608,7 @@ export function ImportAS400() {
                 activeTab === tab ? "bg-brand-primary text-white shadow-md" : "text-ui-muted hover:text-ui-text"
               }`}
             >
-              {tab === "data_view" ? "ข้อมูลที่เข้าระบบแล้ว" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === "data_view" ? "ข้อมูลเตรียมนำเข้าระบบ" : tab.charAt(0).toUpperCase() + tab.slice(1)}
               {tab === "staging" && ` (${stagingFiles.length})`}
             </button>
           ))}
@@ -614,8 +631,8 @@ export function ImportAS400() {
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all ${isDragging ? "bg-brand-primary text-white scale-110" : "bg-brand-primary/10 text-brand-primary"}`}>
                   <FileInput size={24} />
                 </div>
-                <h3 className="text-lg font-black text-ui-text uppercase tracking-widest mb-1">Drag & Drop Files</h3>
-                <p className="text-[10px] font-bold text-ui-muted uppercase tracking-widest">Or Click to Browse (TXT, TAB)</p>
+                <h3 className="text-lg font-black text-ui-text uppercase tracking-widest mb-1">ลากและวางไฟล์ที่ต้องการนำเข้า</h3>
+                <p className="text-[14px] font-medium text-ui-muted uppercase tracking-widest">หรือ คลิกเพื่อเลือกไฟล์ (รองรับ: .TXT)</p>
               </div>
             </motion.div>
           )}
@@ -632,7 +649,7 @@ export function ImportAS400() {
                     {selectedStaging.length === stagingFiles.length && stagingFiles.length > 0 && <CheckCircle2 size={14} />}
                   </button>
                   <div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-brand-primary">Staging Area</h3>
+                    <h3 className="text-xs font-black uppercase tracking-widest text-brand-primary">เลือกทั้งหมด</h3>
                     <p className="text-[8px] font-bold text-ui-muted uppercase">{selectedStaging.length} Selected</p>
                   </div>
                 </div>
@@ -640,17 +657,17 @@ export function ImportAS400() {
                   {selectedStaging.length > 0 && isAdmin && (
                     <button 
                       onClick={() => setStagingDeleteTarget({ type: "multiple" })}
-                      className="px-3 py-1.5 bg-status-error/10 text-status-error border border-status-error/20 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-status-error hover:text-white transition-all"
+                      className="px-3 py-1.5 bg-status-error/10 text-status-error border border-status-error/20 rounded-lg text-[12px] font-black uppercase tracking-widest hover:bg-status-error hover:text-white transition-all"
                     >
-                      Delete Selected
+                      ลบไฟล์ที่เลือก
                     </button>
                   )}
                   <button 
                     onClick={handleProcessSelected} 
                     disabled={selectedStaging.length === 0}
-                    className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-md transition-all ${selectedStaging.length > 0 ? "bg-brand-primary text-white hover:scale-105" : "bg-ui-border text-ui-muted cursor-not-allowed"}`}
+                    className={`px-4 py-1.5 rounded-lg text-[14px] font-black uppercase tracking-widest shadow-md transition-all ${selectedStaging.length > 0 ? "bg-brand-primary text-white hover:scale-105" : "bg-ui-border text-ui-muted cursor-not-allowed"}`}
                   >
-                    Filter & Import
+                    ประมวลผลไฟล์
                   </button>
                 </div>
               </div>
@@ -717,16 +734,16 @@ export function ImportAS400() {
                     <button 
                       onClick={handleDeleteTemp}
                       disabled={selectedHeaders.length === 0 || isTransferring}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${selectedHeaders.length > 0 ? "bg-status-error/10 text-status-error border border-status-error/20 hover:bg-status-error hover:text-white" : "bg-ui-border text-ui-muted cursor-not-allowed"}`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-black uppercase tracking-widest transition-all ${selectedHeaders.length > 0 ? "bg-status-error/10 text-status-error border border-status-error/20 hover:bg-status-error hover:text-white" : "bg-ui-border text-ui-muted cursor-not-allowed"}`}
                     >
                       <Trash2 size={14} /> ลบข้อมูล ({selectedHeaders.length})
                     </button>
                     <button 
                       onClick={handleTransferToAS400}
                       disabled={selectedHeaders.length === 0 || isTransferring}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${selectedHeaders.length > 0 ? "bg-emerald-600 text-white shadow-md hover:bg-emerald-700" : "bg-ui-border text-ui-muted cursor-not-allowed"}`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-black uppercase tracking-widest transition-all ${selectedHeaders.length > 0 ? "bg-emerald-600 text-white shadow-md hover:bg-emerald-700" : "bg-ui-border text-ui-muted cursor-not-allowed"}`}
                     >
-                      <ClipboardCheck size={14} /> โอนข้อมูลเข้า AS/400 ({selectedHeaders.length})
+                      <ClipboardCheck size={14} /> โอนข้อมูลเข้า AS400 ({selectedHeaders.length})
                     </button>
                   </div>
                </div>
@@ -741,7 +758,7 @@ export function ImportAS400() {
                       >
                         {selectedHeaders.length === headerData.length && headerData.length > 0 && <CheckCircle2 size={12} />}
                       </button>
-                      <h3 className="text-xs font-black uppercase tracking-widest text-brand-primary">ข้อมูลที่เข้าระบบแล้ว (Master)</h3>
+                      <h3 className="text-xs font-black uppercase tracking-widest text-brand-primary">ข้อมูลที่ประมวลผลแล้ว</h3>
                     </div>
                     <span className="text-[10px] font-bold text-ui-muted uppercase">{headerData.length} รายการ (เลือกแล้ว {selectedHeaders.length})</span>
                   </div>
@@ -815,7 +832,7 @@ export function ImportAS400() {
                         {headerData.length === 0 ? (
                           <tr>
                             <td colSpan={11} className="px-4 py-20 text-center text-ui-muted italic">
-                              ไม่พบข้อมูลใบสั่งซื้อที่รอการประมวลผล กรุณานำเข้าไฟล์และกด Filter & Import 📥
+                              ไม่พบข้อมูลใบสั่งซื้อที่รอการประมวลผล กรุณานำเข้าไฟล์และกด ประมวลผลไฟล์ 📥
                             </td>
                           </tr>
                         ) : headerData.map(h => {
@@ -843,10 +860,10 @@ export function ImportAS400() {
                                 {h.createdAt ? new Date(h.createdAt).toLocaleDateString('th-TH') : "-"}
                               </td>
                               <td className="px-4 py-2 text-center">
-                                {h.as400Status ? (
-                                  <span className="text-[11px] font-medium text-red-600 uppercase">เคยนำเข้าแล้ว</span>
+                                {h.as400Status ?  (
+                                  <span className="text-[12px] font-medium text-red-600 uppercase">เคยนำเข้าแล้ว</span>
                                 ) : (
-                                  <span className="text-[11px] font-medium text-ui-muted uppercase opacity-50">รอนำเข้า</span>
+                                  <span className="text-[12px] font-medium text-ui-muted uppercase opacity-50">รอนำเข้า</span>
                                 )}
                               </td>
                             </tr>
@@ -980,22 +997,22 @@ export function ImportAS400() {
             <motion.div key="archives" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
-                  <h3 className="text-xs font-black uppercase text-brand-primary">Archives</h3>
+                  <h3 className="text-xs font-black uppercase text-brand-primary">ประวัติไฟล์ที่นำเข้า</h3>
                   <div className="flex items-center gap-2">
                     {selectedArchives.length > 0 && (
                       <button 
                         onClick={handleDownloadSelectedArchives}
-                        className="px-3 py-1 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all flex items-center gap-1.5"
+                        className="px-3 py-1 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-lg text-[12px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all flex items-center gap-1.5"
                       >
-                        <Download size={12} /> Download Selected ({selectedArchives.length})
+                        <Download size={12} /> Download ที่เลือก({selectedArchives.length})
                       </button>
                     )}
                     {selectedArchives.length > 0 && isAdmin && (
                       <button 
                         onClick={handleDeleteSelectedArchives}
-                        className="px-3 py-1 bg-status-error/10 text-status-error border border-status-error/20 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-status-error hover:text-white transition-all flex items-center gap-1.5"
+                        className="px-3 py-1 bg-status-error/10 text-status-error border border-status-error/20 rounded-lg text-[12px] font-black uppercase tracking-widest hover:bg-status-error hover:text-white transition-all flex items-center gap-1.5"
                       >
-                        <Trash2 size={12} /> Delete Selected ({selectedArchives.length})
+                        <Trash2 size={12} /> ลบที่เลือก ({selectedArchives.length})
                       </button>
                     )}
                   </div>

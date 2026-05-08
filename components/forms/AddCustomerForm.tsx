@@ -68,7 +68,7 @@ export function AddCustomerForm({ onSuccess, initialValues }: AddCustomerFormPro
     const value = watch(id) || "";
     return (
       <div className="space-y-1">
-        <div className="flex justify-between text-[11px]">
+        <div className="flex justify-between text-[14px]">
           <label className="text-ui-muted font-medium">{label}</label>
           <span className="text-ui-muted/60">{value.length}/{maxLength}</span>
         </div>

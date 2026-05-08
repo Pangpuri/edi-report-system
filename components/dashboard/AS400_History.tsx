@@ -102,8 +102,8 @@ export function AS400History() {
             <Database size={20} />
           </div>
           <div>
-            <h2 className="text-lg font-medium text-emerald-600 uppercase tracking-tight">AS/400 HISTORY</h2>
-            <p className="text-[10px] text-ui-muted uppercase tracking-widest">ประวัติการนำเข้าข้อมูล (ถาวร)</p>
+            <h2 className="text-lg font-medium text-emerald-600 uppercase tracking-tight">รายการข้อมูลเข้า AS400</h2>
+            <p className="text-[14px] text-ui-muted uppercase tracking-widest">ข้อมูลที่นำเข้าแล้ว</p>
           </div>
         </div>
 
@@ -136,7 +136,7 @@ export function AS400History() {
               >
                 {selectedHeaders.length === filteredHeaders.length && filteredHeaders.length > 0 && <Check size={12} />}
               </button>
-              <h3 className="text-xs font-black uppercase tracking-widest text-brand-primary">ประวัติถาวร (Master)</h3>
+              <h3 className="text-sm font-black uppercase tracking-widest text-brand-primary">ฐานข้อมูลปัจจุบัน ({filteredHeaders.length}) รายการ</h3>
             </div>
             <span className="text-[10px] font-bold text-ui-muted uppercase">{filteredHeaders.length} รายการ</span>
           </div>
@@ -242,7 +242,7 @@ export function AS400History() {
                 {filteredHeaders.length === 0 ? (
                   <tr>
                     <td colSpan={14} className="px-4 py-20 text-center text-ui-muted italic">
-                      ไม่พบประวัติการนำเข้าในระบบ 📭
+                      ไม่พบประวัติการนำเข้าในระบบ 
                     </td>
                   </tr>
                 ) : (
@@ -312,15 +312,15 @@ export function AS400History() {
                 <div className="flex bg-ui-bg p-0.5 rounded-lg border border-ui-border">
                   <button 
                     onClick={() => setActiveBottomTab("items")}
-                    className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${activeBottomTab === "items" ? "bg-brand-primary text-white shadow-sm" : "text-ui-muted hover:text-ui-text"}`}
+                    className={`px-3 py-1 rounded-md text-[12px] font-black uppercase tracking-widest transition-all ${activeBottomTab === "items" ? "bg-brand-primary text-white shadow-sm" : "text-ui-muted hover:text-ui-text"}`}
                   >
-                    รายการสินค้า (History)
+                    รายละเอียด
                   </button>
                   <button 
                     onClick={() => setActiveBottomTab("logs")}
-                    className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${activeBottomTab === "logs" ? "bg-emerald-600 text-white shadow-sm" : "text-ui-muted hover:text-ui-text"}`}
+                    className={`px-3 py-1 rounded-md text-[12px] font-black uppercase tracking-widest transition-all ${activeBottomTab === "logs" ? "bg-emerald-600 text-white shadow-sm" : "text-ui-muted hover:text-ui-text"}`}
                   >
-                    AS/400 Logs
+                    ประวัติดำเนินการ AS400
                   </button>
                 </div>
                 {(isDetailLoading || isPending || isLogsLoading) && <Loader2 size={12} className="animate-spin text-brand-primary" />}
@@ -329,23 +329,23 @@ export function AS400History() {
               {selectedHeaders.length > 0 && (
                 <button 
                   onClick={handleDeleteSelectedHeaders}
-                  className="flex items-center gap-1.5 px-3 py-1 bg-status-error/10 text-status-error border border-status-error/20 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-status-error hover:text-white transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1 bg-status-error/10 text-status-error border border-status-error/20 rounded-lg text-[12px] font-black uppercase tracking-widest hover:bg-status-error hover:text-white transition-all"
                 >
-                  <Trash2 size={12} /> ลบประวัติ ({selectedHeaders.length})
+                  <Trash2 size={18} /> ลบข้อมูลออก ({selectedHeaders.length})
                 </button>
               )}
               <button 
                 onClick={handleReTransfer}
                 disabled={selectedHeaders.length === 0 || isTransferring}
-                className="disabled:opacity-30 flex items-center gap-1.5 px-3 py-1 bg-ui-bg border border-ui-border rounded-lg text-[10px] font-black uppercase tracking-widest hover:text-brand-primary transition-all"
+                className="disabled:opacity-30 flex items-center gap-1.5 px-3 py-1 bg-ui-bg border border-ui-border rounded-lg text-[12px] font-black uppercase tracking-widest hover:text-brand-primary transition-all"
               >
-                <RefreshCw size={12} className={isTransferring ? "animate-spin" : ""} /> Re-Sync ({selectedHeaders.length})
+                <RefreshCw size={14} className={isTransferring ? "animate-spin" : ""} /> Re-Transfer ({selectedHeaders.length})
               </button>
               <button 
                 disabled={selectedHeaders.length === 0} 
-                className="disabled:opacity-30 flex items-center gap-1.5 px-3 py-1 bg-brand-primary text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md"
+                className="disabled:opacity-30 flex items-center gap-1.5 px-3 py-1 bg-brand-primary text-white rounded-lg text-[12px] font-black uppercase tracking-widest shadow-md"
               >
-                <Printer size={12} /> Re-Print ({selectedHeaders.length})
+                <Printer size={14} /> Print ({selectedHeaders.length})
               </button>
             </div>
           </div>

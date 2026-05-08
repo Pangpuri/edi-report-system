@@ -15,9 +15,11 @@ export async function POST(request: NextRequest) {
     
 
     if (!file) {
-
       return NextResponse.json({ error: 'ไม่พบไฟล์' }, { status: 400 });
+    }
 
+    if (!file.name.toLowerCase().endsWith('.txt')) {
+      return NextResponse.json({ error: 'ระบบรองรับเฉพาะไฟล์ .TXT เท่านั้น' }, { status: 400 });
     }
 
 

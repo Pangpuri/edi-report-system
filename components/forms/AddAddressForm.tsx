@@ -60,14 +60,14 @@ export function AddAddressForm({ onSuccess, initialValues }: AddAddressFormProps
     
     return (
       <div className="space-y-1">
-        <div className="flex justify-between text-[11px]">
+        <div className="flex justify-between text-[14px]">
           <label className="text-ui-muted font-medium">{label}</label>
           <span className="text-ui-muted/60">{value.length}/{maxLength}</span>
         </div>
         <input 
           {...register(id)} // 🛡️ register(id) ตอนนี้จะ Type-safe 100%
           maxLength={maxLength}
-          disabled={isPending || (isEdit && id === "customer_no")} // 🛡️ ป้องกันการแก้ PK ตอน Edit
+          disabled={isPending || (isEdit && id === "customer_no")} // ป้องกันการแก้ PK ตอน Edit
           className={`w-full bg-ui-bg border border-ui-border p-2 rounded-lg text-sm text-ui-text focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 outline-none transition-all ${isPending ? 'opacity-50 cursor-wait' : ''}`}
         />
         {/* 🛡️ แสดง error message ถ้ามี (เพิ่มเผื่อไว้ให้ฮะ) */}
