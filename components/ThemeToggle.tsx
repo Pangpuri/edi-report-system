@@ -9,7 +9,7 @@ export function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // 🛡️ ปรับการแก้ Hydration Mismatch ให้ทันสมัยขึ้น
+  // Hydration Mismatch ให้ทันสมัยขึ้น
   useEffect(() => {
     startTransition(() => {
       setMounted(true);

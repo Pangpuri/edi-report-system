@@ -9,12 +9,7 @@ interface ExportDataProps {
   activeTab: TabType;
 }
 
-/**
- * Component ปุ่มโหลดไฟล์แบบ Dropdown สำหรับ Export ข้อมูล
- * รองรับการโหลดทั้งแบบ .TAB (EDI win-874) และ .CSV (Excel utf-8)
- * 
- * @param props - Properties ที่รับเข้ามา (ในที่นี้คือ activeTab สี่ถูกเลือกในปัจจุบัน)
- */
+
 export default function ExportData({ activeTab }: ExportDataProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -28,7 +23,6 @@ export default function ExportData({ activeTab }: ExportDataProps) {
   };
 
   return (
-    // 🛡️ เพิ่ม z-[50] ตรงจุดนี้เพื่อให้ปุ่มและ Dropdown มีสิทธิ์เหนือ Layer อื่นในหน้า Dashboard
     <div className="relative inline-block text-left z-[50]">
       {/* ปุ่มหลักสำหรับเปิด Dropdown */}
       <button
@@ -44,7 +38,7 @@ export default function ExportData({ activeTab }: ExportDataProps) {
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* 🛡️ Backdrop: ใช้ z-[90] และ fixed เพื่อคลุมทั้งจอและดัก Event คลิก */}
+            
             <div 
               className="fixed inset-0 z-[110] bg-transparent" 
               onClick={() => setIsOpen(false)} 
@@ -55,7 +49,7 @@ export default function ExportData({ activeTab }: ExportDataProps) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              // 🛡️ แก้ไขจุดตาย: ต้องใช้ z-[100] (มีก้ามปู) และปรับพื้นหลังให้ทึบขึ้นเล็กน้อยเพื่อสู้กับแสง Backdrop
+              
               className="absolute right-0 mt-3 w-64 bg-ui-card border border-ui-border rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] z-[120] overflow-hidden backdrop-blur-2xl"
 >
               <div className="p-2 space-y-1">
