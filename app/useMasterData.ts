@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { TabType, MasterData } from "@/app/edi";
+import { MasterData } from "@/app/edi";
 import { getCustomerMaster } from "@/app/actions/master/customer-actions";
 import { getProductMaster } from "@/app/actions/master/product-actions";
 import { getCustomerAddresses } from "@/app/actions/master/address-actions";
@@ -85,12 +85,9 @@ export function useMasterData(activeTab: string) {
     if (!query) return data;
 
     return data.filter((item) => {
-      // Surgical check to avoid heavy Object.values recursion if possible
-      for (const key in item) {
-        const val = (item as any)[key];
-        if (val && String(val).toLowerCase().includes(query)) return true;
-      }
-      return false;
+      return Object.values(item).some((val) => 
+        val && String(val).toLowerCase().includes(query)
+      );
     });
   }, [data, debouncedQuery]);
 
