@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { createUserAction, updateUserAction } from "@/app/actions/user-actions";
+import { createUserAction, updateUserAction } from "@/app/actions/user/user-actions";
 import { useToast } from "@/components/ToastProvider";
 
 export interface User {

@@ -6,7 +6,7 @@ import * as z from "zod";
 import { customerSchema } from "@/lib/validations/edi";
 import { useTransition } from "react"; // 👈 เพิ่มมาคุมสถานะ
 import { motion } from "framer-motion";
-import { createCustomerAction, updateCustomerAction } from "@/app/actions/edi-actions"; 
+import { createCustomerAction, updateCustomerAction } from "@/app/actions/master/customer-actions"; 
 import { useToast } from "@/components/ToastProvider";
 
 type CustomerFormData = z.infer<typeof customerSchema>;

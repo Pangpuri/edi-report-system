@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useCallback, useEffect } from "react";
 import { TabType, ViewMode, MasterData, DashboardTab } from "@/app/edi";
-import { deleteMasterDataAction } from "@/app/actions/edi-actions";
+import { deleteMasterDataAction } from "@/app/actions/master/shared-actions";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/components/ToastProvider";
 

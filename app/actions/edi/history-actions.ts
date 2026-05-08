@@ -8,7 +8,7 @@ import {
   getAS400LogsByHistoryIds,
   updateHistoryStatus,
   reTransferHistoryAction
-} from "@/app/actions/as400-actions";
+} from "./as400-actions";
 import { useToast } from "@/components/ToastProvider";
 
 // --- Types ---

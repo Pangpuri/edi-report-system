@@ -5,7 +5,7 @@ import { TabType, SlideBarTab, ViewMode } from "@/app/edi";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import ExportData from "@/components/ExportData";
 import { RefreshCcw, Loader2 } from "lucide-react";
-import { importAllMasterData } from "@/app/actions/master-import-actions";
+import { importAllMasterData } from "@/app/actions/master/import-actions";
 import { useToast } from "@/components/ToastProvider";
 
 interface DashboardHeaderProps {

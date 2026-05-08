@@ -6,7 +6,7 @@ import * as z from "zod";
 import { prodcodeSchema } from "@/lib/validations/edi";
 import { motion } from "framer-motion";
 import { useTransition } from "react";
-import { createProductAction, updateProductAction } from "@/app/actions/edi-actions"; 
+import { createProductAction, updateProductAction } from "@/app/actions/master/product-actions"; 
 import { useToast } from "@/components/ToastProvider";
 
 type ProductFormData = z.infer<typeof prodcodeSchema>;

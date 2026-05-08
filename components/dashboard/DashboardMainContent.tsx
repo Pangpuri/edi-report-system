@@ -2,13 +2,13 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { SlideBarTab, TabType, MasterData, ViewMode } from "@/app/edi";
-import { UserManagement } from "@/components/dashboard/UserManagement";
-import { ImportAS400 } from "@/components/dashboard/Import_H_D_data";
-import { AS400History } from "@/components/dashboard/AS400_History";
-import { MasterDataTable } from "@/components/MasterDataTable";
-import { AddCustomerForm } from "@/components/forms/AddCustomerForm";
-import { AddAddressForm } from "@/components/forms/AddAddressForm";
-import { AddProductForm } from "@/components/forms/AddProductForm";
+import { UserManagement } from "@/components/dashboard/user-management/UserManagement_Main";
+import { ImportAS400 } from "@/components/dashboard/import-data/Import_data_main";
+import { AS400History } from "@/components/dashboard/history-data/AS400_History_Main";
+import { MasterDataTable } from "@/components/dashboard/master-data/MasterDataTable";
+import { AddCustomerForm } from "@/components/dashboard/master-data/customers/CustomerForm";
+import { AddAddressForm } from "@/components/dashboard/master-data/addresses/AddressForm";
+import { AddProductForm } from "@/components/dashboard/master-data/products/ProductForm";
 import { useToast } from "@/components/ToastProvider";
 
 interface DashboardMainContentProps {

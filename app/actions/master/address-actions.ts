@@ -2,17 +2,22 @@
 
 import { db } from "@/db";
 import { custAddress } from "@/db/schema";
-import { desc } from "drizzle-orm";
-import { unstable_noStore as noStore } from 'next/cache';
+import { eq, desc } from "drizzle-orm";
+import { addressSchema } from "@/lib/validations/edi";
+import { revalidatePath, unstable_noStore as noStore } from "next/cache";
+import { z } from "zod";
 import { checkSession } from "@/lib/auth-utils";
+
+interface ActionResponse {
+  success: boolean;
+  error?: string;
+}
+
+type CustomerAddress = typeof custAddress.$inferSelect;
 
 /**
  * ดึงข้อมูลที่อยู่ของลูกค้าทั้งหมด (Address Master Data)
- * คืนค่าสูงสุด 100 รายการล่าสุด
- * 
- * @returns {Promise<{success: boolean, data: any[], error?: string}>} ข้อมูลที่อยู่พร้อมสถานะการดึงข้อมูล
  */
-type CustomerAddress = typeof custAddress.$inferSelect;
 export async function getCustomerAddresses(): Promise<{ 
   success: boolean; 
   data: CustomerAddress[]; 
@@ -45,7 +50,6 @@ export async function getCustomerAddresses(): Promise<{
     .from(custAddress)
     .orderBy(desc(custAddress.customer_no)); 
 
-  
     const data = rawData.map(item => ({
       ...item,
       ean_location_code: item.ean_location_code ?? undefined,
@@ -75,5 +79,52 @@ export async function getCustomerAddresses(): Promise<{
       data: [], 
       error: error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการดึงข้อมูลจากฐานข้อมูล" 
     };
+  }
+}
+
+/**
+ * สร้างข้อมูลที่อยู่ใหม่
+ */
+export async function createAddressAction(data: z.infer<typeof addressSchema>): Promise<ActionResponse> {
+  try {
+    await checkSession();
+    const validatedFields = addressSchema.safeParse(data);
+    if (!validatedFields.success) return { success: false, error: "ข้อมูลที่อยู่ไม่ถูกต้อง" };
+
+    const values = validatedFields.data;
+    await db.insert(custAddress).values({
+      ...values,
+      customer_no: values.customer_no ?? "", 
+    });
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error("❌ Address Insert Error:", error);
+    const msg = error instanceof Error ? error.message : "";
+    return { 
+      success: false, 
+      error: msg.includes("unique constraint") ? "รหัสลูกค้านี้มีที่อยู่อยู่แล้ว" : "บันทึกที่อยู่ไม่สำเร็จ" 
+    };
+  }
+}
+
+/**
+ * อัปเดตข้อมูลที่อยู่
+ */
+export async function updateAddressAction(id: string, data: z.infer<typeof addressSchema>): Promise<ActionResponse> {
+  try {
+    await checkSession();
+    const validatedFields = addressSchema.safeParse(data);
+    if (!validatedFields.success) return { success: false, error: "ข้อมูลไม่ถูกต้อง" };
+
+    await db.update(custAddress)
+      .set({ ...validatedFields.data })
+      .where(eq(custAddress.customer_no, id));
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error("❌ Address Update Error:", error);
+    return { success: false, error: "อัปเดตที่อยู่ไม่สำเร็จ" };
   }
 }

@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback, useTransition } from "react";
 import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal";
-import { UserViewModal } from "@/components/modals/UserViewModal";
-import { EditUserModal, type User as ModalUser } from "@/components/modals/EditUserModal";
+import { UserViewModal } from "./(modals)/UserViewModal";
+import { EditUserModal, type User as ModalUser } from "./(modals)/EditUserModal";
 // ✅ ปรับการ Import: เอา updateUserRoleAction ออก และใช้ updateUserAction แทน
-import { getUsersAction, updateUserAction, deleteUserAction } from "@/app/actions/user-actions";
+import { getUsersAction, updateUserAction, deleteUserAction } from "@/app/actions/user/user-actions";
 import { useToast } from "@/components/ToastProvider";
 
 interface User {

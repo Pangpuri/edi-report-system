@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { TabType, MasterData } from "@/app/edi";
-import { getCustomerMaster } from "@/app/actions/edi-customer";
-import { getProductMaster } from "@/app/actions/edi-product";
-import { getCustomerAddresses } from "@/app/actions/edi-custAddress";
+import { getCustomerMaster } from "@/app/actions/master/customer-actions";
+import { getProductMaster } from "@/app/actions/master/product-actions";
+import { getCustomerAddresses } from "@/app/actions/master/address-actions";
 
 interface ActionResult {
   success: boolean;

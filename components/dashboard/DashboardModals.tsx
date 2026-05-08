@@ -1,9 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { TabType, MasterData, Customer, Product, Address, DashboardTab } from "@/app/edi";
-import { isCustomer, isProduct, isAddress } from "@/components/MasterDataTable";
-import { AddCustomerForm } from "@/components/forms/AddCustomerForm";
-import { AddProductForm } from "@/components/forms/AddProductForm";
-import { AddAddressForm } from "@/components/forms/AddAddressForm";
+import { isCustomer, isProduct, isAddress } from "./master-data/MasterDataTable";
+import { AddCustomerForm } from "./master-data/customers/CustomerForm";
+import { AddProductForm } from "./master-data/products/ProductForm";
+import { AddAddressForm } from "./master-data/addresses/AddressForm";
 
 interface DashboardModalsProps {
   viewTarget: MasterData | null;

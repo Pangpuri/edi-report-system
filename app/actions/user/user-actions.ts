@@ -7,7 +7,7 @@ import { eq, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { headers } from "next/headers";
+import { checkSession } from "@/lib/auth-utils";
 
 // 🛡️ Schema
 const userSchema = z.object({
@@ -22,9 +22,22 @@ const userSchema = z.object({
 type UserInput = z.infer<typeof userSchema>;
 type PartialUserInput = Partial<UserInput>;
 
+/**
+ * 🛡️ Helper: Ensure the current user is an admin
+ */
+async function ensureAdmin() {
+  const session = await checkSession();
+  const sessionUser = session.user as (typeof session.user & { role?: string });
+  if (sessionUser.role !== "admin") {
+    throw new Error("Unauthorized: เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถจัดการผู้ใช้ได้");
+  }
+  return session;
+}
+
 // createUser
 export async function createUserAction(data: UserInput) {
   try {
+    await ensureAdmin();
     const validated = userSchema.parse(data);
     const cleanPhone = validated.phone?.replace(/\s/g, "") || "";
 
@@ -63,33 +76,27 @@ export async function createUserAction(data: UserInput) {
   }
 }
 
-
- // Update User
- 
+// Update User
 export async function updateUserAction(
   userId: string,
   data: PartialUserInput
 ) {
   try {
+    await ensureAdmin();
     const validated = userSchema.partial().parse(data);
     const { phone, password, email, name, role } = validated;
 
     // 🔐 1. Update Password
     if (password && password.trim() !== "") {
       try {
-        console.log("🔑 Hashing password for:", userId);
-
         const hashedPassword = await hashPassword(password);
-
-        const result = await db
+        await db
           .update(account)
           .set({
             password: hashedPassword,
             updatedAt: new Date(),
           })
           .where(eq(account.userId, userId));
-
-        console.log("✅ Rows affected:", result.rowCount);
       } catch (error) {
         console.error("❌ Password Update Failed:", error);
         throw new Error(
@@ -140,24 +147,40 @@ export async function updateUserAction(
   }
 }
 
-//getUsers
+// getUsers
 export async function getUsersAction() {
   try {
+    await ensureAdmin();
     const data = await db.select().from(user).orderBy(user.createdAt);
     return { success: true, data };
   } catch (error) {
-    return { success: false, error: "ดึงข้อมูลล้มเหลว" };
+    return { success: false, error: error instanceof Error ? error.message : "ดึงข้อมูลล้มเหลว" };
   }
 }
 
-//deleteUser
+// deleteUser
 export async function deleteUserAction(userId: string) {
   try {
+    await ensureAdmin();
     await db.delete(user).where(eq(user.id, userId));
     revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Delete User Error:", error);
-    return { success: false, error: "ลบผู้ใช้ล้มเหลว" };
+    return { success: false, error: error instanceof Error ? error.message : "ลบผู้ใช้ล้มเหลว" };
+  }
+}
+
+/**
+ * 🚫 แบน/ปิดกั้นผู้ใช้
+ */
+export async function banUserAction(userId: string) {
+  try {
+    await ensureAdmin();
+    await db.update(user).set({ role: "banned" }).where(eq(user.id, userId));
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "ไม่สามารถแบนผู้ใช้ได้" };
   }
 }

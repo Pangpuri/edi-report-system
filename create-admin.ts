@@ -41,8 +41,9 @@ async function createAdmin() {
             console.error("❌ Sign up failed without error message.");
             process.exit(1);
         }
-    } catch (error: any) {
-        if (error.message?.includes("already exists") || error.code === "user_already_exists") {
+    } catch (error: unknown) {
+        const err = error as { message?: string; code?: string };
+        if (err.message?.includes("already exists") || err.code === "user_already_exists") {
             console.log("ℹ️ User already exists. Attempting to promote to admin and update phone...");
             await db.update(userTable)
                 .set({ 

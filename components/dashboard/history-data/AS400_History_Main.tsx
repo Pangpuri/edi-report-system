@@ -14,7 +14,7 @@ import {
   Trash2
 } from "lucide-react";
 
-import { useAS400History } from "@/app/actions/as400_history_logic";
+import { useAS400History } from "@/app/actions/edi/history-actions";
 
 export function AS400History() {
   // --- ชุดตัวแปร (States) สำหรับปรับขนาดคอลัมน์ ---
@@ -345,7 +345,8 @@ export function AS400History() {
                 disabled={selectedHeaders.length === 0} 
                 className="disabled:opacity-30 flex items-center gap-1.5 px-3 py-1 bg-brand-primary text-white rounded-lg text-[12px] font-black uppercase tracking-widest shadow-md"
               >
-                <Printer size={14} /> Print ({selectedHeaders.length})
+                {/* รอรูปแบบฟอร์ม */}
+                <Printer size={14} /> Print ({selectedHeaders.length}) 
               </button>
             </div>
           </div>

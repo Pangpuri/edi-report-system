@@ -7,8 +7,8 @@ import { useDashboardActions } from "@/app/hooks/useDashboardActions";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { SlidebarLayout } from "@/components/layout/SlideBar";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { DashboardSearch } from "@/components/dashboard/DashboardSearch";
+import { DashboardHeader } from "@/components/dashboard/layout/DashboardHeader";
+import { DashboardSearch } from "@/components/dashboard/layout/DashboardSearch";
 import { DashboardMainContent } from "@/components/dashboard/DashboardMainContent";
 
 export const dynamic = "force-dynamic";

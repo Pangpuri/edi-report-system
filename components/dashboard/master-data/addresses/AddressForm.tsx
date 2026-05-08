@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { addressSchema } from "@/lib/validations/edi";
 import { motion } from "framer-motion";
-import { createAddressAction, updateAddressAction } from "@/app/actions/edi-actions";
+import { createAddressAction, updateAddressAction } from "@/app/actions/master/address-actions";
 import { useToast } from "@/components/ToastProvider";
 
 // 🛡️ สร้าง Type จาก Schema โดยตรง ไม่ต้องเขียนซ้ำ
