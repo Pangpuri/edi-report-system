@@ -19,18 +19,18 @@ export function useMasterData(activeTab: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   
-  // 🔍 Search States
+  //  Search States
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   
-  // 🔢 Pagination State (Local only for maximum speed)
+  //  Pagination State (Local only for maximum speed)
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
-  // 🛡️ Reference to track tab changes
+  //  Reference to track tab changes
   const lastTab = useRef(activeTab);
 
-  // 🛡️ Debounce logic: Delay filtering to keep typing smooth
+  //  Debounce logic: Delay filtering to keep typing smooth
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(searchQuery);
@@ -38,7 +38,7 @@ export function useMasterData(activeTab: string) {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // 🔄 Data Loader
+  //  Data Loader
   const loadData = useCallback(async (isSilent = false) => {
     const isMasterDataTab = ["customer", "product", "address"].includes(activeTab);
     if (!isMasterDataTab) {
@@ -68,7 +68,7 @@ export function useMasterData(activeTab: string) {
     }
   }, [activeTab]);
 
-  // 🔄 Initial Load & Tab Change handling
+  //  Initial Load & Tab Change handling
   useEffect(() => {
     loadData();
     if (lastTab.current !== activeTab) {
@@ -79,7 +79,7 @@ export function useMasterData(activeTab: string) {
     }
   }, [activeTab, loadData]);
 
-  // 🔍 Optimized Search Filter
+  //  Optimized Search Filter
   const allFilteredData = useMemo(() => {
     const query = debouncedQuery.toLowerCase().trim();
     if (!query) return data;
