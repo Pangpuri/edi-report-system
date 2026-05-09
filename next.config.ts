@@ -16,13 +16,13 @@ const nextConfig: NextConfig = {
   // ส่วนนี้จะทำงานก็ต่อเมื่อปังรันด้วย --webpack เท่านั้นค่ะ
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer && config.output) {
-      config.output.publicPath = 'http://192.168.10.130:3000/_next/';
+      config.output.publicPath = 'http://192.168.10.141:3000/_next/';
     }
     return config;
   },
 
   // ✅ 4. เพิ่ม Asset Prefix เพื่อให้ Browser หาไฟล์เจอผ่าน IP
-  assetPrefix: process.env.NODE_ENV === 'development' ? 'http://192.168.10.130:3000' : undefined,
+  assetPrefix: process.env.NODE_ENV === 'development' ? '192.168.10.141:3000' : undefined,
 };
 
 export default nextConfig;

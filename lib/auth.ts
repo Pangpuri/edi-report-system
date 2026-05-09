@@ -18,6 +18,7 @@ interface AuthUserContext {
 }
 
 export const auth = betterAuth({
+    baseURL: process.env.BETTER_AUTH_URL,
     database: drizzleAdapter(db, {
         provider: "pg",
         schema: { ...schema },
@@ -29,13 +30,13 @@ export const auth = betterAuth({
             name: "better-auth.session-token",
             attributes: {
                 sameSite: "lax",
-                secure: false, // 👈 ปิดเพื่อให้ส่ง cookie ผ่าน http ได้
+                secure: false, // ปิดเพื่อให้ส่ง cookie ผ่าน http ได้
             }
         }
     },
 
     trustedOrigins: [
-        "http://192.168.10.130:3000",
+        "http://192.168.10.141:3000",
         "http://localhost:3000"
     ],
 

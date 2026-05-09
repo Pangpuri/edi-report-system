@@ -50,7 +50,7 @@ export default async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    // 🚀 สำคัญมาก: บังคับให้ใช้ Node.js Runtime เพื่อให้ใช้ Better Auth / Database ได้
     runtime: "nodejs", 
-    matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+    // ✨ ลองใช้ matcher แบบนี้แทนค่ะ (เน้น Exclude สิ่งที่ไม่เกี่ยวข้องออกไปให้หมด)
+    matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico|login|register|.*\\.woff2|.*\\.css|.*\\.js).*)"],
 };

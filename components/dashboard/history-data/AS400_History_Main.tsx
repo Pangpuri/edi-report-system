@@ -102,7 +102,7 @@ export function AS400History() {
             <Database size={20} />
           </div>
           <div>
-            <h2 className="text-lg font-medium text-emerald-600 uppercase tracking-tight">รายการข้อมูลเข้า AS400</h2>
+            <h2 className="text-lg font-medium text-emerald-600 uppercase tracking-tight">รายการข้อมูลก่อนพิมพ์</h2>
             <p className="text-[14px] text-ui-muted uppercase tracking-widest">ข้อมูลที่นำเข้าแล้ว</p>
           </div>
         </div>

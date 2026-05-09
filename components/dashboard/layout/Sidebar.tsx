@@ -49,7 +49,7 @@ export function Sidebar({ activeTab, setActiveTab, userRole, onSignOut }: Sideba
       title: "จัดการ EDI",
       items: [
         { id: "import", label: "นำเข้า และ จัดการ EDI", icon: Layers },
-        { id: "processed-data", label: "ประวัติการนำเข้า AS400", icon: CheckCircle2 },
+        { id: "processed-data", label: "ข้อมูลก่อนพิมพ์ PO/DETAIL", icon: CheckCircle2 },
       ]
     },
     ...(userRole === "admin" ? [{

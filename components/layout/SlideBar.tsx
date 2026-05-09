@@ -3,7 +3,7 @@
 import { ReactNode, useState, useEffect, memo, startTransition } from "react";
 import { Sidebar } from "@/components/dashboard/layout/Sidebar";
 import { DashboardModals } from "@/components/dashboard/DashboardModals";
-// ✅ Import ทุกอย่างจาก edi.ts ที่เดียวจบ
+//  Import ทุกอย่างจาก edi.ts ที่เดียวจบ
 import { TabType, SlideBarTab, SessionUser, MasterData } from "@/app/edi";
 
 interface SlideBarLayoutProps {
