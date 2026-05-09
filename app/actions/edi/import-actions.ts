@@ -63,6 +63,7 @@ export interface EDLDetail {
   discount2: string | number | null;
   discount3: string | number | null;
   netAmount: string | number | null;
+  isProductValid?: boolean;
 }
 
 export async function uploadAS400FilesAction(formData: FormData): Promise<ImportResult> {
@@ -249,7 +250,7 @@ export async function getEDLByHeadersAction(items: { customerPo: string; fileNam
         customerNum: EDL_temp.Customer_Num,
         seqNum: EDL_temp.Line_Num,
         Bar_Code_Item: sql<string>`COALESCE(NULLIF(TRIM(${EDL_temp.Bar_Code_Item}), ''), NULLIF(TRIM(${prodcode.ean_product_code}), ''), '-')`,
-        productName: sql<string>`COALESCE(NULLIF(TRIM(${EDL_temp.Product_Name}), ''), NULLIF(TRIM(${prodcode.product_description}), ''), 'ไม่พบชื่อสินค้า')`,
+        productName: sql<string>`COALESCE(NULLIF(TRIM(${EDL_temp.Product_Name}), ''), TRIM(${prodcode.product_description}), 'ไม่พบชื่อสินค้า')`,
         orderQty: EDL_temp.Qty_Order,
         unitPrice: EDL_temp.Price_Unit,
         fileName: EDL_temp.File_Name,
@@ -262,6 +263,7 @@ export async function getEDLByHeadersAction(items: { customerPo: string; fileNam
         discount2: EDL_temp.Discount_2,
         discount3: EDL_temp.Discount_3,
         netAmount: EDL_temp.Net_Amount,
+        isProductValid: sql<boolean>`${prodcode.ean_product_code} IS NOT NULL`,
       })
       .from(EDL_temp)
       .leftJoin(prodcode, sql`TRIM(${EDL_temp.Bar_Code_Item}) = TRIM(${prodcode.ean_product_code})`)
@@ -306,6 +308,14 @@ export async function getEDHData() {
         SELECT 1 FROM "EDH_history" h 
         WHERE TRIM(h."Customer_PO") = TRIM(${EDH_temp.Customer_PO}) 
         AND TRIM(h."File_Name") = TRIM(${EDH_temp.File_Name})
+      )`,
+      isCustomerValid: sql<boolean>`${customer.customer_code} IS NOT NULL`,
+      hasDetailError: sql<boolean>`EXISTS (
+        SELECT 1 FROM "EDL_tmp" edl
+        LEFT JOIN "prodcode" p ON TRIM(edl."Bar_Code_Item") = TRIM(p."ean_product_code")
+        WHERE edl."Customer_PO" = ${EDH_temp.Customer_PO} 
+        AND edl."File_Name" = ${EDH_temp.File_Name}
+        AND p."ean_product_code" IS NULL
       )`,
       createdAt: EDH_temp.Created_At,
       createdAtDisplay: sql<string>`TO_CHAR(${EDH_temp.Created_At}, 'DD/MM/YYYY HH24:MI:SS')`,

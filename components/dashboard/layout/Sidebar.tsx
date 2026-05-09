@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChevronLeft, ChevronRight, Menu, X,
   Box, MapPin, Users2, Layers,
-  LogOut, ShieldCheck, CheckCircle2
+  LogOut, ShieldCheck, CheckCircle2,
+  Database
 } from "lucide-react";
 import { DashboardTab } from "@/app/edi";
 
@@ -18,7 +19,7 @@ interface SidebarProps {
 
 /**
  * Sidebar Component: รองรับการพับเก็บ และ Mobile View
- * 🔥 ปรับปรุงสำหรับผู้สูงอายุ: ตัวหนังสือใหญ่ขึ้น, ชัดขึ้น
+ *
  */
 export function Sidebar({ activeTab, setActiveTab, userRole, onSignOut }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -48,7 +49,8 @@ export function Sidebar({ activeTab, setActiveTab, userRole, onSignOut }: Sideba
     {
       title: "จัดการ EDI",
       items: [
-        { id: "import", label: "นำเข้า และ จัดการ EDI", icon: Layers },
+        { id: "import", label: "นำเข้า และ ประมวลผลข้อมูล", icon: Layers },
+        { id: "manage-data", label: "จัดการข้อมูล", icon: Database },
         { id: "processed-data", label: "ข้อมูลก่อนพิมพ์ PO/DETAIL", icon: CheckCircle2 },
       ]
     },

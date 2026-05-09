@@ -39,6 +39,14 @@ export function DataViewTab({
   handleDeleteTemp,
   handleTransferToAS400
 }: DataViewTabProps) {
+  // คำนวณจำนวนรายการที่มีปัญหา (ไม่พบลูกค้า หรือ สินค้าใน PO มีปัญหา)
+  const incompleteCount = headerData.filter(h => h.isCustomerValid === false || h.hasDetailError === true).length;
+
+  // ตรวจสอบว่าในรายการที่เลือก "มีรายการที่ผิดปกติ" รวมอยู่ด้วยหรือไม่ ผิดปกติจะไม่ให้โอนไปได้ เพราะไม่ตรงตามฐานข้อมูลหลัก
+  const hasInvalidSelection = selectedHeaders.some(
+    (h) => h.isCustomerValid === false || h.hasDetailError === true
+  );
+
   return (
     <motion.div 
       key="data_view" 
@@ -49,9 +57,9 @@ export function DataViewTab({
       {/* แถบเครื่องมือ: แจ้งเตือน และ ปุ่มโอนข้อมูล/ลบข้อมูล */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-ui-bg/50 p-3 rounded-lg border border-ui-border">
         <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 text-status-error">
+          <div className={`flex items-center gap-2 ${incompleteCount > 0 ? "text-status-error" : "text-emerald-600"}`}>
             <AlertTriangle size={14} />
-            <span className="text-xs font-bold uppercase">มีข้อมูลไม่สมบูรณ์ หรือมีปัญหา: 0 รายการ</span>
+            <span className="text-sm font-bold uppercase">ไม่ตรงตามฐานข้อมูล หรือมีปัญหา : {incompleteCount} รายการ</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -68,14 +76,14 @@ export function DataViewTab({
           </button>
           <button 
             onClick={handleTransferToAS400}
-            disabled={selectedHeaders.length === 0 || isTransferring}
+            disabled={selectedHeaders.length === 0 || isTransferring || hasInvalidSelection}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-black uppercase tracking-widest transition-all ${
-              selectedHeaders.length > 0 
+              selectedHeaders.length > 0 && !hasInvalidSelection
                 ? "bg-emerald-600 text-white shadow-md hover:bg-emerald-700" 
                 : "bg-ui-border text-ui-muted cursor-not-allowed"
             }`}
           >
-            <ClipboardCheck size={14} /> โอนข้อมูลเข้า AS400 ({selectedHeaders.length})
+            <ClipboardCheck size={14} /> โอนเข้าฐานข้อมูลก่อนพิมพ์ ({selectedHeaders.length})
           </button>
         </div>
       </div>
@@ -162,6 +170,7 @@ export function DataViewTab({
                 
                 <th className="px-4 py-2 text-left">วันที่เข้าสู่ระบบ</th>
                 <th className="px-4 py-2 text-center">สถานะ</th>
+                <th className="px-4 py-2 text-center">ตรวจสอบข้อมูล</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-ui-border/10">
@@ -173,6 +182,7 @@ export function DataViewTab({
                 </tr>
               ) : headerData.map(h => {
                 const isSelected = selectedHeaders.some(sh => sh.id === h.id);
+                const hasError = h.isCustomerValid === false || h.hasDetailError === true;
                 return (
                   <tr 
                     key={h.id} 
@@ -206,6 +216,15 @@ export function DataViewTab({
                         <span className="text-[12px] font-medium text-red-600 uppercase">เคยนำเข้าแล้ว</span>
                       ) : (
                         <span className="text-[12px] font-medium text-ui-muted uppercase opacity-50">รอนำเข้า</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      {h.isCustomerValid === false ? (
+                        <span className="text-[12px] font-medium text-red-600 px-2 py-0.5 rounded ">ไม่พบลูกค้า</span>
+                      ) : h.hasDetailError === true ? (
+                        <span className="text-[12px] font-medium text-orange-600 px-2 py-0.5 "> ข้อมูลผิดปกติ </span>
+                      ) : (
+                        <span className="text-[12px] font-medium text-emerald-600 ">ข้อมูลถูกต้อง</span>
                       )}
                     </td>
                   </tr>
@@ -305,11 +324,16 @@ export function DataViewTab({
               </thead>
               <tbody className="divide-y divide-ui-border/10">
                 {detailData.map(d => (
-                  <tr key={d.id} className="hover:bg-ui-bg/50 transition-colors whitespace-nowrap text-ui-text font-medium">
+                  <tr 
+                    key={d.id} 
+                    className={`hover:bg-ui-bg/50 transition-colors whitespace-nowrap text-ui-text font-medium ${
+                      d.isProductValid === false ? "bg-red-500/5 text-red-600" : ""
+                    }`}
+                  >
                     <td className="px-4 py-1.5 font-medium">{d.seqNum}</td>
                     <td className="px-4 py-1.5 text-xs">{d.productName}</td>
                     <td className="px-4 py-1.5">{d.unitMeasure || d.packSize || "-"}</td>
-                    <td className="px-4 py-1.5 text-left text-emerald-600">{d.Bar_Code_Item || "-"}</td>
+                    <td className={`px-4 py-1.5 text-left ${d.isProductValid === false ? "text-red-600 font-medium" : "text-emerald-600"}`}>{d.Bar_Code_Item || "-"}</td>
                     <td className="px-4 py-1.5">{d.buyerProdCode || "-"}</td>
                     <td className="px-4 py-1.5">{d.vendorProdCode || "-"}</td>
                     <td className="px-4 py-1.5 text-right">{Number(d.orderQty).toFixed(2)}</td>

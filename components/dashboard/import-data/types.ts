@@ -20,6 +20,8 @@ export interface EDHData {
   fileName: string | null;
   as400Status: boolean | null;
   as400ImportedAt: Date | null;
+  isCustomerValid?: boolean;
+  hasDetailError?: boolean;
   createdAt: Date | null;
   createdAtDisplay?: string | null;
 }
@@ -44,6 +46,7 @@ export interface EDLData {
   discount2: string | number | null;
   discount3: string | number | null;
   netAmount: string | number | null;
+  isProductValid?: boolean;
   checkBarInt: string | null;
   checkNameOldProd: string | null;
   changeItem: string | null;

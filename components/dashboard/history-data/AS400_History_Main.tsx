@@ -320,7 +320,7 @@ export function AS400History() {
                     onClick={() => setActiveBottomTab("logs")}
                     className={`px-3 py-1 rounded-md text-[12px] font-black uppercase tracking-widest transition-all ${activeBottomTab === "logs" ? "bg-emerald-600 text-white shadow-sm" : "text-ui-muted hover:text-ui-text"}`}
                   >
-                    ประวัติดำเนินการ AS400
+                    ประวัติดำเนินการของข้อมูล
                   </button>
                 </div>
                 {(isDetailLoading || isPending || isLogsLoading) && <Loader2 size={12} className="animate-spin text-brand-primary" />}

@@ -5,6 +5,7 @@ import { SlideBarTab, TabType, MasterData, ViewMode } from "@/app/edi";
 import { UserManagement } from "@/components/dashboard/user-management/UserManagement_Main";
 import { ImportAS400 } from "@/components/dashboard/import-data/Import_data_main";
 import { AS400History } from "@/components/dashboard/history-data/AS400_History_Main";
+import { ManageDataManagement } from "@/components/dashboard/manage-data/manage-data-main";
 import { MasterDataTable } from "@/components/dashboard/master-data/MasterDataTable";
 import { AddCustomerForm } from "@/components/dashboard/master-data/customers/CustomerForm";
 import { AddAddressForm } from "@/components/dashboard/master-data/addresses/AddressForm";
@@ -63,9 +64,7 @@ export function DashboardMainContent({
             variants={tabVariants} initial="initial" animate="animate" exit="exit"
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
-            {/* 🔄 ปรับปรุง: แสดง Loading ส่วนกลางเฉพาะตอนอยู่หน้า Master Data 
-                เพราะหน้าอื่นๆ เช่น Import หรือ User Management มีสถานะ Loading ภายในตัวเองอยู่แล้ว
-                เพื่อป้องกันหน้าเว็บค้างเมื่อเปลี่ยน Tab */}
+            {/* แสดง loding */}
             {loading && ["customer", "address", "product"].includes(activeTab) ? (
               <div className="text-center p-12 md:p-20 min-h-[400px] flex flex-col items-center justify-center bg-ui-card rounded-[2rem] md:rounded-[3rem] border border-ui-border shadow-xl">
                 <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin mb-4 md:mb-6" />
@@ -80,6 +79,7 @@ export function DashboardMainContent({
             ) : activeTab === "users" ? <UserManagement />
               : activeTab === "import" ? <ImportAS400 />
               : activeTab === "processed-data" ? <AS400History />
+              : activeTab === "manage-data" ? <ManageDataManagement />
               : (
               <div className="bg-ui-card p-4 md:p-6 rounded-xl border border-ui-border shadow-lg min-h-[600px] flex flex-col relative overflow-hidden text-ui-text">
                 <MasterDataTable 
