@@ -60,7 +60,7 @@ export interface EDLHistoryData {
   discount2: string | number | null;
   discount3: string | number | null;
   netAmount: string | number | null; 
-  // checkBarInt: string | null;
+  checkBarInt: string | null;
   checkNameOldProd: string | null;
   changeItem: string | null;
   changeProdName: string | null;

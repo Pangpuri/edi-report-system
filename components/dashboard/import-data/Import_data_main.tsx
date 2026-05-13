@@ -25,13 +25,12 @@ import {
 
 // Import sub-components
 import { ImportTab } from "./(tabs)/ImportTab";
-import { StagingTab } from "./(tabs)/StagingTab";
 import { DataViewTab } from "./(tabs)/DataViewTab";
 import { ArchivesTab } from "./(tabs)/ArchivesTab";
 import { LoadingOverlay } from "./(shared)/LoadingOverlay";
-import { DeleteConfirmModal } from "./(shared)/DeleteConfirmModal";
+import { ImportModals } from "./(shared)/ImportModals";
 
-export function ImportAS400() {
+export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (tab: any) => void }) {
   const { showToast } = useToast();
   const { data: session } = useSession();
   
@@ -50,23 +49,20 @@ export function ImportAS400() {
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("import_active_tab");
-      if (saved && ["import", "staging", "data_view", "archives"].includes(saved)) {
+      if (saved && ["import", "data_view", "archives"].includes(saved)) {
         return saved as TabType;
       }
     }
     return "import";
   });
 
-  const [stagingFiles, setStagingFiles] = useState<StagingFile[]>([]);
   const [rawArchives, setRawArchives] = useState<RawArchive[]>([]);
   const [archiveSearch, setArchiveSearch] = useState("");
   
   const [isImporting, setIsImporting] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [selectedStaging, setSelectedStaging] = useState<string[]>([]);
   const [selectedArchives, setSelectedArchives] = useState<number[]>([]);
-  const [stagingDeleteTarget, setStagingDeleteTarget] = useState<StagingDeleteTarget | null>(null);
 
   const [isPending, startTransition] = useTransition();
   const [detailCache, setDetailCache] = useState<Record<string, EDLData[]>>({});
@@ -80,6 +76,10 @@ export function ImportAS400() {
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
 
+  // --- Modal States ---
+  const [customerModalTarget, setCustomerModalTarget] = useState<EDHData | null>(null);
+  const [productModalTarget, setProductModalTarget] = useState<{ header: EDHData; details: EDLData[] } | null>(null);
+
   // --- Effects ---
   useEffect(() => {
     localStorage.setItem("import_active_tab", activeTab);
@@ -89,9 +89,6 @@ export function ImportAS400() {
     const hData = await getEDHData();
     setHeaderData(hData as unknown as EDHData[]);
 
-    const sData = await getStagingFilesAction();
-    setStagingFiles(sData as StagingFile[]);
-
     const aData = await getRawFileArchivesAction();
     setRawArchives(aData as RawArchive[]);
   }, []);
@@ -99,6 +96,53 @@ export function ImportAS400() {
   useEffect(() => {
     initData();
   }, [initData]);
+
+  // ฟังก์ชันสำหรับ Refresh ข้อมูลหลังจากมีการแก้ไข Master Data
+  const refreshAfterMasterUpdate = useCallback(async () => {
+    const hData = await getEDHData();
+    const headers = hData as unknown as EDHData[];
+    setHeaderData(headers);
+
+    // อัปเดตสถานะของ Selected Headers
+    if (selectedHeaders.length > 0) {
+      const updated = headers.filter(h => 
+        selectedHeaders.some(sh => sh.id === h.id)
+      );
+      setSelectedHeaders(updated);
+      
+      // ล้าง Cache และโหลด Detail ใหม่เพื่อให้เห็นสถานะ Validation ล่าสุด
+      setDetailCache({});
+      
+      if (updated.length > 0) {
+        setIsDetailLoading(true);
+        try {
+          const items = updated.map(h => ({ customerPo: h.customerPo ?? "", fileName: h.fileName ?? "" }));
+          const newDetails = await getEDLByHeadersAction(items);
+          
+          const newCacheEntries: Record<string, EDLData[]> = {};
+          updated.forEach(h => {
+            newCacheEntries[`${h.customerPo}|${h.fileName}`] = (newDetails as unknown as EDLData[]).filter(
+              d => d.customerPo === h.customerPo && d.fileName === h.fileName
+            );
+          });
+
+          setDetailCache(newCacheEntries);
+          
+          const allDetailsRaw = updated.flatMap(h => newCacheEntries[`${h.customerPo}|${h.fileName}`] || []);
+          const allDetails = Array.from(new Map(allDetailsRaw.map(d => [d.id, d])).values())
+            .sort((a, b) => 
+              (a.seqNum ?? "").localeCompare(b.seqNum ?? "", undefined, { numeric: true, sensitivity: 'base' })
+            );
+          
+          setDetailData(allDetails);
+        } catch (error) {
+          console.error("Refresh Details Error:", error);
+        } finally {
+          setIsDetailLoading(false);
+        }
+      }
+    }
+  }, [selectedHeaders]);
 
   // --- Handlers ---
 
@@ -167,13 +211,39 @@ export function ImportAS400() {
     setIsImporting(true);
     try {
       const { uploadAS400FilesAction } = await import("@/app/actions/edi/import-actions");
-      await uploadAS400FilesAction(formData);
-      const sData = await getStagingFilesAction();
-      setStagingFiles(sData as StagingFile[]);
-      setActiveTab("staging"); 
+      const uploadRes = await uploadAS400FilesAction(formData);
+      
+      if (uploadRes.success) {
+        // เมื่อ Upload สำเร็จ ให้ประมวลผลไฟล์ทันทีโดยไม่ต้องผ่าน Staging
+        await clearTempTablesAction();
+        let successCount = 0;
+        const fileNames = validFiles.map(f => f.name);
+        
+        for (const fileName of fileNames) {
+          const res = await processImportAS400(fileName, undefined, false);
+          if (res.success) successCount++;
+        }
+
+        await initData();
+        showToast(`นำเข้าและประมวลผลสำเร็จ ${successCount} จาก ${fileNames.length} ไฟล์`, "success");
+        
+        // อัปเดตข้อมูลตารางเตรียมนำเข้า
+        const updatedHData = await getEDHData() as unknown as EDHData[];
+        setHeaderData(updatedHData);
+        const newlyImported = updatedHData.filter(h => fileNames.includes(h.fileName ?? ""));
+        setSelectedHeaders(newlyImported);
+        if (newlyImported.length > 0) {
+          fetchMultipleDetails(newlyImported);
+        }
+        
+        setActiveTab("data_view"); 
+      } else {
+        showToast(uploadRes.message || "เกิดข้อผิดพลาดในการอัปโหลด", "error");
+      }
     } catch (error: unknown) {
       const err = error as Error;
-      console.error("Upload Error:", err.message);
+      console.error("Upload & Process Error:", err.message);
+      showToast("เกิดข้อผิดพลาดในระบบ", "error");
     } finally {
       setIsImporting(false);
     }
@@ -238,90 +308,6 @@ export function ImportAS400() {
       startTransition(() => {
         setDetailData(allDetails);
       });
-    }
-  };
-
-  const handleProcessSelected = async () => {
-    if (selectedStaging.length === 0) {
-      showToast("กรุณาเลือกไฟล์ที่ต้องการนำเข้า", "error");
-      return;
-    }
-    if (!confirm(`ยืนยันการกรองรหัสและนำเข้าข้อมูล ${selectedStaging.length} ไฟล์ที่เลือก?`)) return;
-    
-    setIsImporting(true);
-    await clearTempTablesAction();
-
-    let successCount = 0;
-    const processedFiles: string[] = [];
-    for (const fileName of selectedStaging) {
-      const res = await processImportAS400(fileName, undefined, false);
-      if (res.success) {
-        successCount++;
-        processedFiles.push(fileName);
-      }
-    }
-
-    await initData();
-    setIsImporting(false);
-    showToast(`นำเข้าสำเร็จ ${successCount} จาก ${selectedStaging.length} ไฟล์ (กรองรหัส ISP เรียบร้อย)`, "success");
-    setSelectedStaging([]);
-
-    const updatedHData = await getEDHData() as unknown as EDHData[];
-    setHeaderData(updatedHData);
-    const newlyImported = updatedHData.filter(h => processedFiles.includes(h.fileName ?? ""));
-    setSelectedHeaders(newlyImported);
-    if (newlyImported.length > 0) {
-      fetchMultipleDetails(newlyImported);
-    }
-    
-    setActiveTab("data_view");
-  };
-
-  const executeDeleteSelectedStaging = async () => {
-    if (selectedStaging.length === 0) return;
-
-    setStagingDeleteTarget(null);
-    setIsImporting(true);
-    let successCount = 0;
-    for (const fileName of selectedStaging) {
-      const res = await deleteAS400FileAction(fileName);
-      if (res.success) successCount++;
-    }
-    setIsImporting(false);
-    showToast(`ลบสำเร็จ ${successCount} จาก ${selectedStaging.length} ไฟล์`, "success");
-    setSelectedStaging([]);
-    initData();
-  };
-
-  const toggleSelectStaging = (fileName: string) => {
-    setSelectedStaging(prev => 
-      prev.includes(fileName) ? prev.filter(f => f !== fileName) : [...prev, fileName]
-    );
-  };
-
-  const executeDeleteStagingFile = async (fileName: string) => {
-    const res = await deleteAS400FileAction(fileName);
-    if (res.success) {
-      setSelectedStaging(prev => prev.filter(f => f !== fileName));
-      initData();
-    }
-    setStagingDeleteTarget(null);
-  };
-
-  const handleConfirmStagingDelete = async () => {
-    if (!stagingDeleteTarget) return;
-    if (stagingDeleteTarget.type === "multiple") {
-      await executeDeleteSelectedStaging();
-    } else if (stagingDeleteTarget.fileName) {
-      await executeDeleteStagingFile(stagingDeleteTarget.fileName);
-    }
-  };
-
-  const toggleSelectAllStaging = () => {
-    if (selectedStaging.length === stagingFiles.length) {
-      setSelectedStaging([]);
-    } else {
-      setSelectedStaging(stagingFiles.map(f => f.name));
     }
   };
 
@@ -419,17 +405,51 @@ export function ImportAS400() {
     
     setIsTransferring(true);
     let successCount = 0;
+    const tabFiles: { content: string; name: string }[] = [];
+
     for (const header of selectedHeaders) {
       try {
         const res = await upsertToAS400(header.id);
-        if (res.success) successCount++;
+        if (res.success) {
+          successCount++;
+          if (res.tabContent && res.fileName) {
+            tabFiles.push({ content: res.tabContent, name: res.fileName });
+          }
+        } else {
+          showToast(res.message, "error");
+        }
       } catch (error) {
         console.error(`Transfer Error for PO ${header.customerPo}:`, error);
       }
     }
     
+    // ดำเนินการดาวน์โหลดไฟล์ .tab ถ้ามี
+    if (tabFiles.length > 0) {
+      showToast(`กำลังเตรียมดาวน์โหลดไฟล์ .tab จำนวน ${tabFiles.length} ไฟล์...`, "success");
+      for (const file of tabFiles) {
+        const blob = new Blob([file.content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = file.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        // หน่วงเวลาเล็กน้อยป้องกัน Browser Block multiple downloads
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    }
+
     setIsTransferring(false);
-    showToast(`โอนข้อมูลสำเร็จ ${successCount} จาก ${selectedHeaders.length} รายการ (ข้อมูลที่โอนแล้วถูกล้างออกจากระบบ)`, successCount > 0 ? "success" : "error");
+    if (successCount > 0) {
+      showToast(`โอนข้อมูลสำเร็จ ${successCount} จาก ${selectedHeaders.length} รายการ (ข้อมูลถูกกระจายไปที่ History และ Record แล้ว)`, "success");
+      
+      // 🚀 เด้งไปที่หน้า "รายการข้อมูลก่อนพิมพ์" ทันทีที่โอนสำเร็จ
+      if (setParentTab) {
+        setParentTab("processed-data");
+      }
+    }
     
     setSelectedHeaders([]);
     setDetailData([]);
@@ -483,12 +503,12 @@ export function ImportAS400() {
           </div>
           <div>
             <h2 className="text-sm font-black text-brand-primary uppercase tracking-tight">ระบบนำเข้า และจัดการไฟล์ EDI</h2>
-            <p className="text-[8px] text-ui-muted font-bold uppercase tracking-widest">Staging & ISP Filter</p>
+            <p className="text-[8px] text-ui-muted font-bold uppercase tracking-widest">ISP Filter</p>
           </div>
         </div>
 
         <div className="flex items-center gap-1 bg-ui-bg p-1 rounded-lg border border-ui-border">
-          {(["import", "staging", "data_view", "archives"] as const).map((tab) => (
+          {(["import", "data_view", "archives"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -497,7 +517,6 @@ export function ImportAS400() {
               }`}
             >
               {tab === "data_view" ? "ข้อมูลเตรียมนำเข้าระบบ" : tab.charAt(0).toUpperCase() + tab.slice(1)}
-              {tab === "staging" && ` (${stagingFiles.length})`}
             </button>
           ))}
         </div>
@@ -511,18 +530,6 @@ export function ImportAS400() {
               setIsDragging={setIsDragging}
               handleDrop={handleDrop}
               handleFileUpload={handleFileUpload}
-            />
-          )}
-
-          {activeTab === "staging" && (
-            <StagingTab 
-              stagingFiles={stagingFiles}
-              selectedStaging={selectedStaging}
-              toggleSelectStaging={toggleSelectStaging}
-              toggleSelectAllStaging={toggleSelectAllStaging}
-              setStagingDeleteTarget={setStagingDeleteTarget}
-              handleProcessSelected={handleProcessSelected}
-              isAdmin={isAdmin}
             />
           )}
 
@@ -541,6 +548,8 @@ export function ImportAS400() {
               toggleSelectAllHeaders={toggleSelectAllHeaders}
               handleDeleteTemp={handleDeleteTemp}
               handleTransferToAS400={handleTransferToAS400}
+              setCustomerModalTarget={setCustomerModalTarget}
+              setProductModalTarget={setProductModalTarget}
             />
           )}
 
@@ -561,10 +570,12 @@ export function ImportAS400() {
         </AnimatePresence>
       </div>
 
-      <DeleteConfirmModal 
-        isVisible={!!stagingDeleteTarget}
-        onCancel={() => setStagingDeleteTarget(null)}
-        onConfirm={handleConfirmStagingDelete}
+      <ImportModals 
+        customerModalTarget={customerModalTarget}
+        setCustomerModalTarget={setCustomerModalTarget}
+        productModalTarget={productModalTarget}
+        setProductModalTarget={setProductModalTarget}
+        onSuccess={refreshAfterMasterUpdate}
       />
     </div>
   );

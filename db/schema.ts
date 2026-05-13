@@ -10,7 +10,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { Check } from "lucide-react";
+import { file } from "zod";
 
 // --- กลุ่มตารางระบบ Auth และ User Management ---
 
@@ -92,15 +92,16 @@ export const custAddress = pgTable("cust_address", {
   zip_code: varchar("zip_code", { length: 20 }),
   telephone: varchar("telephone", { length: 50 }),
   fax_no: varchar("fax_no", { length: 50 }),
-  ean_location_code: varchar("ean_location_code", { length: 50 }),
-  ship_to_code: varchar("ship_to_code", { length: 20 }),
-  usage_code: varchar("usage_code", { length: 10 }),
+  ean_location_code: varchar("ean_location_code", { length: 100 }), 
+  barcode: varchar("barcode", { length: 100 }), 
+  ship_to_code: varchar("ship_to_code", { length: 50 }), 
+  usage_code: varchar("usage_code", { length: 20 }),     
   product_table: varchar("product_table", { length: 50 }),
-  local_name: varchar("local_name", { length: 100 }),
+  local_name: varchar("local_name", { length: 255 }),    
   branch_code: varchar("branch_code", { length: 50 }),
   tax_id: varchar("tax_id", { length: 50 }),
   branch_short_name: varchar("branch_short_name", { length: 100 }),
-  signature: varchar("signature", { length: 10 }),
+  signature: varchar("signature", { length: 50 }),       
   doc_ref_pttrm: varchar("doc_ref_pttrm", { length: 100 }),
   updated_at: timestamp("updated_at").defaultNow(),
 });
@@ -234,13 +235,36 @@ export const TEDL = pgTable("EDL_history", {
   File_Name: varchar("File_Name", { length: 255 }),
   Change_Item: varchar("Change_Item", { length: 30 }),
   Change_Prod_Name: text("Change_Prod_Name"),
+  Check_Name_Old_Prod: text("Check_Name_Old_Prod"), // เก็บชื่อเก่าจากไฟล์ (Audit)
   Created_At: timestamp("Created_At").defaultNow(),
 });
 
 // --- กลุ่มตาราง Log และ System Config ---
 
+export const master_data_logs = pgTable("master_data_logs", {
+  id: serial("id").primaryKey(),
+  actionType: varchar("action_type", { length: 50 }).notNull(), // 'CREATE', 'UPDATE_NAME', 'UPDATE_BARCODE'
+  barcode: varchar("barcode", { length: 100 }),
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+//ข้อมูลที่ต้องเปลี่ยนรหัส
+export const Edit_Detail = pgTable("Edit_Detail", {
+  id: serial("id").primaryKey(),
+  BarCode: varchar("Bar_code", { length: 25 }).notNull(),//บาร์โค้ด
+  Internal_Code1: varchar("Internal_Code1", { length: 20 }).notNull(), // รหัสใหม่จากไฟล์
+  Cus_Code: varchar("Cus_Code", { length: 25 }), // ผูกกับลูกค้า (Optional)
+  Prod_Name1: text("Prod_Name1"), // ชื่อเดิมสินค้า
+  Internal_Code2: varchar("Internal_Code2", { length: 20 }).notNull(), // รหัสใหม่
+  Prod_Name2: text("Prod_Name2"), // ชื่อใหม่สินค้า
+  lastUsed: timestamp("last_used").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+//--- กลุ่มตารางสำหรับเก็บ Log การนำเข้าและการส่งข้อมูลเข้า AS/400 ---
 export const as400_logs = pgTable("as400_logs", {
-  
   id: serial("id").primaryKey(),
   historyId: integer("history_id").references(() => TEDH.id, {
     onDelete: "cascade",
@@ -250,6 +274,7 @@ export const as400_logs = pgTable("as400_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+//--- กลุ่มตารางสำหรับเก็บไฟล์ที่อัพโหลดและข้อมูลสาขา ---
 export const rawFileArchives = pgTable("raw_file_archives", {
   id: serial("id").primaryKey().notNull(),
   fileName: text("file_name").notNull(),
@@ -260,6 +285,7 @@ export const rawFileArchives = pgTable("raw_file_archives", {
   branchId: integer("branch_id"),
 });
 
+//--- กลุ่มตารางสำหรับจัดการข้อมูลสาขาและการตั้งค่าระบบ ---
 export const branches = pgTable("branches", {
   id: serial("id").primaryKey().notNull(),
   branchName: varchar("branch_name", { length: 100 }).notNull(),
@@ -273,6 +299,7 @@ export const branches = pgTable("branches", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+//--- กลุ่มตารางสำหรับเก็บการตั้งค่าระบบที่อาจมีการเปลี่ยนแปลงได้ ---
 export const systemConfigs = pgTable("system_configs", {
  id: serial("id").primaryKey().notNull(),
   configKey: varchar("config_key", { length: 100 }).unique().notNull(),
@@ -281,8 +308,8 @@ export const systemConfigs = pgTable("system_configs", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+//--- กลุ่มตารางสำหรับเก็บ Log การนำเข้าและการประมวลผลไฟล์ ---
 export const importLogs = pgTable("import_logs", {
-
   id: serial("id").primaryKey().notNull(),
   branchId: integer("branch_id").references(() => branches.id),
   fileName: varchar("file_name", { length: 255 }),
@@ -291,6 +318,7 @@ export const importLogs = pgTable("import_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+//--- กลุ่มตารางสำหรับเก็บข้อมูลไฟล์ที่ถูกนำเข้าและยังไม่ได้ประมวลผล (Staging) ---
 export const ediRawStaging = pgTable(
   "edi_raw_staging",
   {
@@ -311,8 +339,75 @@ export const ediRawStaging = pgTable(
   },
 );
 
-// --- การนิยามความสัมพันธ์ (Relations) ---
+//--- กลุ่มมตารางรายการที่นำเข้าแล้วสำหรับเผื่อไว้พิมพ์ซ้ำ----
+export const TEDH_history = pgTable("EDH_record", {
 
+  id: serial("id").primaryKey(),
+  H_Type: varchar("H_Type", { length: 1 }),
+  Customer_PO: varchar("Customer_PO", { length: 25 }),
+  Line_Num: varchar("Line_Num", { length: 10 }),
+  Item_Num: varchar("Item_Num", { length: 30 }),
+  Item_Description: text("Item_Description"),
+  Bar_Code_Item: varchar("Bar_Code_Item", { length: 20 }),
+  Unit_Measure: varchar("Unit_Measure", { length: 10 }),
+  Unit_Price: numeric("Unit_Price", { precision: 12, scale: 2 }),
+  Order_Qty: numeric("Order_Qty", { precision: 12, scale: 2 }),
+  Net_Amount: numeric("Net_Amount", { precision: 12, scale: 2 }),
+  Order_Date: varchar("Order_Date", { length: 10 }),
+  Request_Date: varchar("Request_Date", { length: 10 }),
+  Discount_1: numeric("Discount_1", { precision: 12, scale: 2 }),
+  Discount_2: numeric("Discount_2", { precision: 12, scale: 2 }),
+  Discount_3: numeric("Discount_3", { precision: 12, scale: 2 }),
+  Discount_Amount_Unit: numeric("Discount_Amount_Unit", {
+    precision: 12,
+    scale: 2,
+  }),
+  Buyer_Internal_Prod_code: varchar("Buyer_Internal_Prod_code", { length: 30 }),
+  Customer_Num: varchar("Customer_Num", { length: 20 }),
+  Customer_Name: text("Customer_Name"),
+  Buyer_Name: text("Buyer_Name"),
+  Date_PO: varchar("Date_PO", { length: 10 }),
+  Date_Ship: varchar("Date_Ship", { length: 10 }),
+  Total_Amount: numeric("Total_Amount", { precision: 12, scale: 2 }),
+  File_Name: varchar("File_Name", { length: 255 }),
+  AS400_Status: boolean("AS400_Status").default(true),
+  Flag: boolean("Flag").default(false),
+  Cus_Name_OP: text("Cus_Name_OP"),
+  Cus_Prod_Change: text("Cus_Prod_Change"),
+  AS400_Imported_At: timestamp("AS400_Imported_At").defaultNow(),
+  Created_At: timestamp("Created_At").defaultNow(),
+});
+
+export const TEDL_history = pgTable("EDL_record", {
+  id: serial("id").primaryKey(),
+  Header_Id: integer("Header_Id").references(() => TEDH_history.id, {
+    onDelete: "cascade",
+  }),
+  D_Type: varchar("D_Type", { length: 1 }),
+  Customer_PO: varchar("Customer_PO", { length: 25 }),
+  Customer_Num: varchar("Customer_Num", { length: 20 }),
+  Line_Num: varchar("Line_Num", { length: 10 }),
+  Product_Name: text("Product_Name"),
+  Pack_Size: varchar("Pack_Size", { length: 50 }),
+  Bar_Code_Item: varchar("Bar_Code_Item", { length: 20 }),
+  Buyer_Prod_Code: varchar("Buyer_Prod_Code", { length: 30 }),
+  Vendor_Prod_Code: varchar("Vendor_Prod_Code", { length: 30 }),
+  Qty_Order: numeric("Qty_Order", { precision: 12, scale: 2 }),
+  Price_Unit: numeric("Price_Unit", { precision: 12, scale: 2 }),
+  Free_Qty: numeric("Free_Qty", { precision: 12, scale: 2 }),
+  Discount_1: numeric("Discount_1", { precision: 12, scale: 2 }),
+  Discount_2: numeric("Discount_2", { precision: 12, scale: 2 }),
+  Discount_3: numeric("Discount_3", { precision: 12, scale: 2 }),
+  Net_Amount: numeric("Net_Amount", { precision: 12, scale: 2 }),
+  Check_Bar_Int: varchar("Check_Bar_Int", { length: 30 }),
+  File_Name: varchar("File_Name", { length: 255 }),
+  Change_Item: varchar("Change_Item", { length: 30 }),
+  Change_Prod_Name: text("Change_Prod_Name"),
+  Check_Name_Old_Prod: text("Check_Name_Old_Prod"), // เก็บชื่อเก่าจากไฟล์ (Audit)
+  Created_At: timestamp("Created_At").defaultNow(),
+});
+
+// --- การนิยามความสัมพันธ์ (Relations) ---
 export const TEDHRelations = relations(TEDH, ({ many }) => ({
   details: many(TEDL),
   logs: many(as400_logs),

@@ -1,6 +1,6 @@
 // @/app/edi.ts
 export type ViewMode = "list" | "add" | "grid";
-export type TabType = "address" | "customer" | "product" | "users" | "import" | "processed-data" | "manage-data";
+export type TabType = "address" | "customer" | "product" | "users" | "import" | "processed-data" | "data-record" | "change-product";
 export type SlideBarTab = TabType;
 export type DashboardTab = TabType;
 

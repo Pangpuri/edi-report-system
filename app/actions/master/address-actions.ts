@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { custAddress } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { customer, custAddress } from "@/db/schema";
+import { eq, asc } from "drizzle-orm";
 import { addressSchema } from "@/lib/validations/edi";
 import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 import { z } from "zod";
@@ -13,14 +13,26 @@ interface ActionResponse {
   error?: string;
 }
 
-type CustomerAddress = typeof custAddress.$inferSelect;
+export interface CustomerAddressData {
+  customer_no: string | null;
+  ean_location_code: string | null;
+  company_name: string | null;
+  address1: string | null;
+  address2: string | null;
+  city: string | null;
+  zip_code: string | null;
+  telephone: string | null;
+  fax_no: string | null;
+  master_company_name: string | null;
+  master_short_name: string | null;
+}
 
 /**
- * ดึงข้อมูลที่อยู่ของลูกค้าทั้งหมด (Address Master Data)
+ * ดึงข้อมูลที่อยู่ของลูกค้าทั้งหมด (Address Master Data) พร้อม Join ข้อมูลลูกค้า
  */
 export async function getCustomerAddresses(): Promise<{ 
   success: boolean; 
-  data: CustomerAddress[]; 
+  data: CustomerAddressData[]; 
   error?: string 
 }> {
   noStore();
@@ -31,47 +43,21 @@ export async function getCustomerAddresses(): Promise<{
       customer_no: custAddress.customer_no,
       ean_location_code: custAddress.ean_location_code, 
       company_name: custAddress.company_name,
-      local_name: custAddress.local_name,
       address1: custAddress.address1,
       address2: custAddress.address2,
       city: custAddress.city,
       zip_code: custAddress.zip_code,
       telephone: custAddress.telephone,
       fax_no: custAddress.fax_no,
-      branch_code: custAddress.branch_code,
-      branch_short_name: custAddress.branch_short_name, 
-      tax_id: custAddress.tax_id,
-      ship_to_code: custAddress.ship_to_code,          
-      usage_code: custAddress.usage_code,              
-      product_table: custAddress.product_table,       
-      signature: custAddress.signature,
-      doc_ref_pttrm: custAddress.doc_ref_pttrm,          
+      // ดึงจากตาราง customer มาด้วย
+      master_company_name: customer.company_name,
+      master_short_name: customer.short_name,
     })
     .from(custAddress)
-    .orderBy(desc(custAddress.customer_no)); 
+    .leftJoin(customer, eq(custAddress.ean_location_code, customer.ean_location_code))
+    .orderBy(asc(custAddress.company_name)); 
 
-    const data = rawData.map(item => ({
-      ...item,
-      ean_location_code: item.ean_location_code ?? undefined,
-      company_name: item.company_name ?? undefined,
-      local_name: item.local_name ?? undefined,
-      address1: item.address1 ?? undefined,
-      address2: item.address2 ?? undefined,
-      city: item.city ?? undefined,
-      zip_code: item.zip_code ?? undefined,
-      telephone: item.telephone ?? undefined,
-      fax_no: item.fax_no ?? undefined,
-      branch_code: item.branch_code ?? undefined,
-      branch_short_name: item.branch_short_name ?? undefined,
-      tax_id: item.tax_id ?? undefined,
-      ship_to_code: item.ship_to_code ?? undefined,
-      usage_code: item.usage_code ?? undefined,
-      product_table: item.product_table ?? undefined,
-      signature: item.signature ?? undefined,
-      doc_ref_pttrm: item.doc_ref_pttrm ?? undefined,
-    })) as CustomerAddress[];
-
-    return { success: true, data };
+    return { success: true, data: rawData };
   } catch (error) {
     console.error("[EDI-FETCH-ERROR]:", error);
     return { 

@@ -82,6 +82,56 @@ export function AS400History() {
     handleDeleteSelectedHeaders
   } = useAS400History();
 
+  // ฟังก์ชันสำหรับส่งออกข้อมูลที่เลือกเป็นไฟล์ TXT เพื่อดูรูปแบบโครงสร้างข้อมูล (จำลองการส่งเข้า AS400)
+  const handleExportTxt = async () => {
+    if (selectedHeaders.length === 0) return;
+
+    let content = "";
+    selectedHeaders.forEach(h => {
+      // ส่วน Header
+      content += `[HEADER]\n`;
+      content += `CUSTOMER_PO: ${h.customerPo || ""}\n`;
+      content += `CUSTOMER_NUM: ${h.customerNum || ""}\n`;
+      content += `CUSTOMER_NAME: ${h.customerName || ""}\n`;
+      content += `DATE_PO: ${h.datePo || ""}\n`;
+      content += `DATE_SHIP: ${h.dateShip || ""}\n`;
+      content += `TOTAL_AMOUNT: ${h.totalAmount || "0"}\n`;
+      content += `FILE_NAME: ${h.fileName || ""}\n`;
+      content += `--------------------------------------------------\n`;
+
+      // คัดกรองรายการสินค้าที่ตรงกับ Header นี้จาก detailData
+      const items = detailData.filter(d => d.headerId === h.id);
+      
+      content += `[ITEMS]\n`;
+      items.forEach(d => {
+        content += `${String(d.seqNum).padStart(3, '0')} | `;
+        content += `${(d.Bar_Code_Item || "").padEnd(15, ' ')} | `;
+        content += `${(d.productName || "").padEnd(30, ' ')} | `;
+        content += `${String(d.orderQty || 0).padStart(8, ' ')} | `;
+        content += `${String(d.unitPrice || 0).padStart(10, ' ')} | `;
+        content += `${String(d.netAmount || 0).padStart(12, ' ')}\n`;
+      });
+      content += `\n==================================================\n\n`;
+    });
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `as400_export_${new Date().getTime()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    // อัปเดตสถานะในฐานข้อมูลสำหรับรายการที่ยังไม่นำเข้า
+    for (const h of selectedHeaders) {
+      if (!h.as400Status) {
+        await handleToggleStatus(h.id, false);
+      }
+    }
+  };
+
   return (
     <div className="bg-ui-card p-4 md:p-6 rounded-xl border border-ui-border shadow-lg min-h-[600px] flex flex-col relative overflow-hidden text-ui-text">
       
@@ -270,28 +320,10 @@ export function AS400History() {
                         <td className="px-4 py-2 border-r border-ui-border/10 text-ui-muted">
                           {h.importedAtDisplay || "-"}
                         </td>
-                        <td className="px-4 py-2 border-r border-ui-border/10 text-center">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleToggleStatus(h.id, h.as400Status ?? false); }}
-                            className="relative group outline-none"
-                          >
-                            <div className={`
-                                min-w-[100px] px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-tight
-                                transition-all duration-300 border shadow-sm
-                                flex items-center justify-center gap-1.5
-                                ${h.as400Status 
-                                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500 hover:text-white" 
-                                  : "bg-status-error/10 text-status-error border-status-error/30 hover:bg-status-error hover:text-white"
-                                }
-                              `}
-                            >
-                              {h.as400Status ? (
-                                <span className="flex items-center gap-1"><CheckCircle2 size={12} /> สำเร็จ</span>
-                              ) : (
-                                <span className="flex items-center gap-1"><Clock size={12} /> รอนำเข้า</span>
-                              )}
-                            </div>
-                          </button>
+                        <td className="px-4 py-2 text-center">
+                          <span className={`text-[11px] font-black uppercase tracking-tight ${h.as400Status ? "text-emerald-600" : "text-status-error"}`}>
+                            {h.as400Status ? "นำเข้าAS400แล้ว" : "ยังไม่นำเข้าAS400"}
+                          </span>
                         </td>
                         <td className="px-4 py-2 border-r border-ui-border/10 text-center font-mono">{h.flag ? "F" : "S"}</td>
                         <td className="px-4 py-2 border-r border-ui-border/10 truncate max-w-[100px]">{h.cusNameOp || "-"}</td>
@@ -448,11 +480,10 @@ export function AS400History() {
                         <td className="px-4 py-1.5 text-right">{Number(d.discount3 || 0).toFixed(2)}</td>
                         <td className="px-4 py-1.5 text-right font-medium text-emerald-600">{Number(d.netAmount || 0).toFixed(2)}</td>
 
-                        {/* ส่วนนี้รอลอจิก */}
-                        {/* <td className="px-4 py-1.5 truncate max-w-[100px]">{d.checkBarInt || "-"}</td> */}
-                        <td className="px-4 py-1.5 truncate max-w-[120px]">{d.checkNameOldProd || "-"}</td>
-                        <td className="px-4 py-1.5 truncate max-w-[100px]">{d.changeItem || "-"}</td>
-                        <td className="px-4 py-1.5 truncate max-w-[150px]">{d.changeProdName || "-"}</td>
+                        <td className="px-4 py-1.5 text-brand-primary font-mono">{d.checkBarInt || "-"}</td>
+                        <td className="px-4 py-1.5 truncate max-w-[120px]">{d.checkBarInt ? (d.checkNameOldProd || "-") : "-"}</td>
+                        <td className="px-4 py-1.5 truncate max-w-[100px]">{d.checkBarInt ? (d.changeItem || "-") : "-"}</td>
+                        <td className="px-4 py-1.5 truncate max-w-[150px]">{d.checkBarInt ? (d.changeProdName || "-") : "-"}</td>
                       </tr>
                     ))
                   ) : (

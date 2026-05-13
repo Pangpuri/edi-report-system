@@ -62,16 +62,6 @@ export function DashboardHeader({
         
         {isMasterDataTab && viewMode === "list" && (
           <>
-            {isAdmin && (
-              <button
-                onClick={handleSyncMasterData}
-                disabled={isSyncing}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest disabled:opacity-50"
-              >
-                {isSyncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCcw size={12} />}
-                <span>{isSyncing ? "Syncing..." : "Sync Files"}</span>
-              </button>
-            )}
             <ExportData activeTab={activeTab as TabType} />
           </>
         )}

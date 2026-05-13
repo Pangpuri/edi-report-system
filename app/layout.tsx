@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, IBM_Plex_Sans_Thai, Geist } from "next/font/google";
 import "@/app/globals.css";
+import { Inter, Noto_Sans_Thai, Geist } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ToastProvider } from "@/components/ToastProvider";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({subsets:['latin'],variable:'--font-geist'});
 
 const inter = Inter({
   variable: "--font-inter",
@@ -13,11 +13,11 @@ const inter = Inter({
   display: "swap",
 });
 
-const ibmPlexThai = IBM_Plex_Sans_Thai({
-  variable: "--font-ibm-plex-thai",
+const notoSansThai = Noto_Sans_Thai({
+  variable: "--font-sans",
   subsets: ["thai", "latin"],
   display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700"], // Noto Sans Thai มีหลาย weight ให้เลือกใช้
 });
 
 export const metadata: Metadata = {
@@ -34,7 +34,7 @@ export default function RootLayout({
     <html
       lang="th"
       suppressHydrationWarning
-      className={cn("h-full", "antialiased", inter.variable, ibmPlexThai.variable, "font-sans", geist.variable)}
+      className={cn("h-full", "antialiased", inter.variable, notoSansThai.variable, "font-sans", geist.variable)}
     >
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider

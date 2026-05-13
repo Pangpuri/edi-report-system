@@ -27,7 +27,7 @@ export async function getCustomerMaster() {
       short_name: customer.short_name,
     })
       .from(customer)
-      .orderBy(asc(customer.ean_location_code));
+      .orderBy(asc(customer.company_name));
 
     const data = rawData.map(item => ({
       ...item,
@@ -48,7 +48,7 @@ export async function getCustomerMaster() {
 }
 
 /**
- * สร้างข้อมูลลูกค้าใหม่
+ * สร้างหรืออัปเดตข้อมูลลูกค้า (Upsert)
  */
 export async function createCustomerAction(data: z.infer<typeof customerSchema>): Promise<ActionResponse> {
   try {
@@ -58,18 +58,25 @@ export async function createCustomerAction(data: z.infer<typeof customerSchema>)
 
     const values = validatedFields.data;
     await db.insert(customer).values({
-      ...values,
-      customer_code: values.customer_code ?? "", 
+      customer_code: values.customer_code,      // รหัสลูกค้า -> customer_code
+      ean_location_code: values.ean_location_code, // บาร์โค้ดลูกค้า -> ean_location_code
+      company_name: values.company_name,           // ชื่อบริษัท -> company_name
+      short_name: values.short_name,               // ชื่อย่อลูกค้า -> short_name
+    })
+    .onConflictDoUpdate({
+      target: customer.customer_code,
+      set: {
+        ean_location_code: values.ean_location_code,
+        company_name: values.company_name,
+        short_name: values.short_name,
+      }
     });
+
     revalidatePath("/");
     return { success: true };
   } catch (error) {
-    console.error("❌ Customer Insert Error:", error);
-    const msg = error instanceof Error ? error.message : "";
-    return { 
-      success: false, 
-      error: msg.includes("unique constraint") ? "รหัสลูกค้านี้มีอยู่ในระบบแล้ว" : "บันทึกข้อมูลลูกค้าไม่สำเร็จ" 
-    };
+    console.error("❌ Customer Upsert Error:", error);
+    return { success: false, error: "บันทึกข้อมูลลูกค้าไม่สำเร็จ" };
   }
 }
 
@@ -77,19 +84,6 @@ export async function createCustomerAction(data: z.infer<typeof customerSchema>)
  * อัปเดตข้อมูลลูกค้า
  */
 export async function updateCustomerAction(id: string, data: z.infer<typeof customerSchema>): Promise<ActionResponse> {
-  try {
-    await checkSession();
-    const validatedFields = customerSchema.safeParse(data);
-    if (!validatedFields.success) return { success: false, error: "ข้อมูลไม่ถูกต้อง" };
-
-    await db.update(customer)
-      .set({ ...validatedFields.data })
-      .where(eq(customer.customer_code, id));
-
-    revalidatePath("/");
-    return { success: true };
-  } catch (error) {
-    console.error("❌ Customer Update Error:", error);
-    return { success: false, error: "อัปเดตข้อมูลลูกค้าไม่สำเร็จ" };
-  }
+  // ใช้ createCustomerAction แทนได้เลยเพราะเป็น Upsert
+  return createCustomerAction(data);
 }

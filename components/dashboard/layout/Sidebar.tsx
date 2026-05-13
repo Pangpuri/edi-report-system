@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, Menu, X,
   Box, MapPin, Users2, Layers,
   LogOut, ShieldCheck, CheckCircle2,
-  Database
+  Database, ArrowRightLeft
 } from "lucide-react";
 import { DashboardTab } from "@/app/edi";
 
@@ -44,14 +44,15 @@ export function Sidebar({ activeTab, setActiveTab, userRole, onSignOut }: Sideba
         { id: "customer", label: "ข้อมูลลูกค้า", icon: Users2 },
         { id: "address", label: "ที่อยู่ลูกค้า", icon: MapPin },
         { id: "product", label: "ข้อมูลสินค้า", icon: Box },
+        { id: "change-product", label: "สินค้าที่ต้องเปลี่ยนรหัส", icon: ArrowRightLeft },
       ]
     },
     {
       title: "จัดการ EDI",
       items: [
         { id: "import", label: "นำเข้า และ ประมวลผลข้อมูล", icon: Layers },
-        { id: "manage-data", label: "จัดการข้อมูล", icon: Database },
         { id: "processed-data", label: "ข้อมูลก่อนพิมพ์ PO/DETAIL", icon: CheckCircle2 },
+        { id: "data-record", label: "ข้อมูลที่นำเข้าระบบแล้ว", icon: Database },
       ]
     },
     ...(userRole === "admin" ? [{

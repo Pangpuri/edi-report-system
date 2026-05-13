@@ -12,11 +12,13 @@ import {
   rawFileArchives, 
   customer, 
   prodcode,
-  TEDH
+  TEDH,
+  Edit_Detail
 } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { parseEDIFileDelphi } from "@/services/edi-parser";
+import { Fragment } from "react/jsx-runtime";
 
 
 // --- Interfaces ---
@@ -64,6 +66,11 @@ export interface EDLDetail {
   discount3: string | number | null;
   netAmount: string | number | null;
   isProductValid?: boolean;
+  isAutoCorrected?: boolean;
+  // เพิ่มฟิลด์สำหรับแสดงข้อมูลที่จะเปลี่ยน
+  changeItem?: string | null;
+  changeProdName?: string | null;
+  checkBarInt?: string | null;
 }
 
 export async function uploadAS400FilesAction(formData: FormData): Promise<ImportResult> {
@@ -211,7 +218,7 @@ const dCount = result.detailCount ?? 0;
       if (fs.existsSync(archivePath)) fs.unlinkSync(archivePath);
       fs.renameSync(filePath, archivePath);
 
-      // ✅ เก็บประวัติไฟล์ดิบลงฐานข้อมูล
+      // เก็บประวัติไฟล์ดิบลงฐานข้อมูล
       const stats = fs.statSync(archivePath);
       await db.insert(rawFileArchives).values({
         fileName: fileName,
@@ -237,20 +244,18 @@ const dCount = result.detailCount ?? 0;
 export async function getEDLByHeadersAction(items: { customerPo: string; fileName: string }[]): Promise<EDLDetail[]> {
   if (items.length === 0) return [];
 
-  
   const results: EDLDetail[] = [];
   const processedIds = new Set<number>();
 
   try {
     for (const item of items) {
-  
       const details = await db.select({
         id: EDL_temp.id,
         customerPo: EDL_temp.Customer_PO,
         customerNum: EDL_temp.Customer_Num,
         seqNum: EDL_temp.Line_Num,
-        Bar_Code_Item: sql<string>`COALESCE(NULLIF(TRIM(${EDL_temp.Bar_Code_Item}), ''), NULLIF(TRIM(${prodcode.ean_product_code}), ''), '-')`,
-        productName: sql<string>`COALESCE(NULLIF(TRIM(${EDL_temp.Product_Name}), ''), TRIM(${prodcode.product_description}), 'ไม่พบชื่อสินค้า')`,
+        Bar_Code_Item: sql<string>`COALESCE(NULLIF(TRIM(${prodcode.ean_product_code}), ''), NULLIF(TRIM(${EDL_temp.Bar_Code_Item}), ''), '-')`,
+        productName: sql<string>`COALESCE(NULLIF(TRIM(${prodcode.product_description}), ''), NULLIF(TRIM(${EDL_temp.Product_Name}), ''), 'ไม่พบชื่อสินค้า')`,
         orderQty: EDL_temp.Qty_Order,
         unitPrice: EDL_temp.Price_Unit,
         fileName: EDL_temp.File_Name,
@@ -264,8 +269,10 @@ export async function getEDLByHeadersAction(items: { customerPo: string; fileNam
         discount3: EDL_temp.Discount_3,
         netAmount: EDL_temp.Net_Amount,
         isProductValid: sql<boolean>`${prodcode.ean_product_code} IS NOT NULL`,
+        isAutoCorrected: sql<boolean>`false`,
       })
       .from(EDL_temp)
+      // Join กับ Master Data (prodcode)
       .leftJoin(prodcode, sql`TRIM(${EDL_temp.Bar_Code_Item}) = TRIM(${prodcode.ean_product_code})`)
       .leftJoin(customer, sql`TRIM(${EDL_temp.Customer_Num}) = TRIM(${customer.customer_code})`)
       .where(and(
@@ -275,7 +282,7 @@ export async function getEDLByHeadersAction(items: { customerPo: string; fileNam
 
       for (const d of details) {
         if (!processedIds.has(d.id)) {
-          results.push(d as EDLDetail); 
+          results.push(d as unknown as EDLDetail); 
           processedIds.add(d.id);
         }
       }
@@ -298,7 +305,7 @@ export async function getEDHData() {
 
       shortName: sql<string>`COALESCE(NULLIF(TRIM(${customer.short_name}), ''), TRIM(${EDH_temp.Customer_Num}))`,    
       buyerName: sql<string>`COALESCE(NULLIF(TRIM(${customer.customer_code}), ''), TRIM(${EDH_temp.Customer_Num}))`, 
-      customerName: sql<string>`COALESCE(NULLIF(TRIM(${customer.company_name}), ''), 'ไม่พบข้อมูลใน Master')`, 
+      customerName: sql<string>`COALESCE(NULLIF(TRIM(${customer.company_name}), ''), 'ไม่พบชื่อบริษัทในฐานข้อมูล')`, 
       
       datePo: EDH_temp.Date_PO,
       dateShip: EDH_temp.Date_Ship,
@@ -310,6 +317,7 @@ export async function getEDHData() {
         AND TRIM(h."File_Name") = TRIM(${EDH_temp.File_Name})
       )`,
       isCustomerValid: sql<boolean>`${customer.customer_code} IS NOT NULL`,
+      isAutoCorrected: sql<boolean>`false`,
       hasDetailError: sql<boolean>`EXISTS (
         SELECT 1 FROM "EDL_tmp" edl
         LEFT JOIN "prodcode" p ON TRIM(edl."Bar_Code_Item") = TRIM(p."ean_product_code")

@@ -4,7 +4,8 @@
 import { motion } from "framer-motion";
 import { 
   AlertTriangle, Trash2, ClipboardCheck, 
-  CheckCircle2, Loader2, MousePointer2 
+  CheckCircle2, Loader2, MousePointer2,
+  Users2, Box
 } from "lucide-react";
 import { EDHData, EDLData } from "../types";
 
@@ -22,6 +23,8 @@ interface DataViewTabProps {
   toggleSelectAllHeaders: () => void;
   handleDeleteTemp: () => void;
   handleTransferToAS400: () => void;
+  setCustomerModalTarget: (val: EDHData | null) => void;
+  setProductModalTarget: (val: { header: EDHData; details: EDLData[] } | null) => void;
 }
 
 export function DataViewTab({
@@ -37,7 +40,9 @@ export function DataViewTab({
   handleSelectHeader,
   toggleSelectAllHeaders,
   handleDeleteTemp,
-  handleTransferToAS400
+  handleTransferToAS400,
+  setCustomerModalTarget,
+  setProductModalTarget
 }: DataViewTabProps) {
   // คำนวณจำนวนรายการที่มีปัญหา (ไม่พบลูกค้า หรือ สินค้าใน PO มีปัญหา)
   const incompleteCount = headerData.filter(h => h.isCustomerValid === false || h.hasDetailError === true).length;
@@ -47,22 +52,48 @@ export function DataViewTab({
     (h) => h.isCustomerValid === false || h.hasDetailError === true
   );
 
+  // เงื่อนไขปุ่มเปิด Modal (ต้องเลือกไฟล์เดียว และไฟล์นั้นต้องมี Error)
+  const canEditCustomer = selectedHeaders.length === 1 && selectedHeaders[0].isCustomerValid === false;
+  const canEditProduct = selectedHeaders.length === 1 && selectedHeaders[0].hasDetailError === true;
+
   return (
     <motion.div 
       key="data_view" 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="flex-1 flex flex-col gap-4 min-h-0"
+      className="flex-1 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-2"
     >
       {/* แถบเครื่องมือ: แจ้งเตือน และ ปุ่มโอนข้อมูล/ลบข้อมูล */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-ui-bg/50 p-3 rounded-lg border border-ui-border">
         <div className="flex flex-col gap-1">
           <div className={`flex items-center gap-2 ${incompleteCount > 0 ? "text-status-error" : "text-emerald-600"}`}>
             <AlertTriangle size={14} />
-            <span className="text-sm font-bold uppercase">ไม่ตรงตามฐานข้อมูล หรือมีปัญหา : {incompleteCount} รายการ</span>
+            <span className="text-sm font-bold uppercase">ไม่ตรงตามฐานข้อมูลหรือมีปัญหา : {incompleteCount} รายการ</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button 
+            onClick={() => canEditCustomer && setCustomerModalTarget(selectedHeaders[0])}
+            disabled={!canEditCustomer}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-black uppercase tracking-widest transition-all ${
+              canEditCustomer 
+                ? "bg-brand-primary/10 text-brand-primary border border-brand-primary/20 hover:bg-brand-primary hover:text-white shadow-sm"
+                : "bg-ui-border text-ui-muted cursor-not-allowed opacity-50"
+            }`}
+          >
+            <Users2 size={14} /> เพิ่ม/แก้ไข ลูกค้า
+          </button>
+          <button 
+            onClick={() => canEditProduct && setProductModalTarget({ header: selectedHeaders[0], details: detailData })}
+            disabled={!canEditProduct}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-black uppercase tracking-widest transition-all ${
+              canEditProduct 
+                ? "bg-brand-secondary/10 text-brand-secondary border border-brand-secondary/20 hover:bg-brand-secondary hover:text-white shadow-sm"
+                : "bg-ui-border text-ui-muted cursor-not-allowed opacity-50"
+            }`}
+          >
+            <Box size={14} /> เพิ่ม/แก้ไข สินค้า
+          </button>
           <button 
             onClick={handleDeleteTemp}
             disabled={selectedHeaders.length === 0 || isTransferring}
@@ -89,7 +120,7 @@ export function DataViewTab({
       </div>
 
       {/* --- ตาราง MASTER (Header) --- */}
-      <div className="flex-[3] min-h-0 flex flex-col bg-ui-bg/30 border border-ui-border rounded-lg overflow-hidden shadow-inner">
+      <div className="h-[400px] flex-none flex flex-col bg-ui-bg/30 border border-ui-border rounded-lg overflow-hidden shadow-inner">
         <div className="px-4 py-2 border-b border-ui-border bg-ui-card flex justify-between items-center whitespace-nowrap">
           <div className="flex items-center gap-3">
             <button 
@@ -107,7 +138,7 @@ export function DataViewTab({
           <span className="text-[10px] font-bold text-ui-muted uppercase">{headerData.length} รายการ (เลือกแล้ว {selectedHeaders.length})</span>
         </div>
         <div className="flex-1 overflow-auto custom-scrollbar">
-          <table className="w-full text-left text-xs border-collapse min-w-[1200px] table-fixed">
+          <table className="w-full text-left text-xs border-collapse min-w-[1600px] table-fixed">
             <thead className="sticky top-0 bg-ui-bg border-b border-ui-border z-10">
               <tr className="font-medium uppercase text-ui-muted whitespace-nowrap">
                 <th className="px-2 py-2 border-r border-ui-border w-[60px] text-center relative">เลือก</th>
@@ -168,9 +199,24 @@ export function DataViewTab({
                   </div>
                 </th>
                 
-                <th className="px-4 py-2 text-left">วันที่เข้าสู่ระบบ</th>
-                <th className="px-4 py-2 text-center">สถานะ</th>
-                <th className="px-4 py-2 text-center">ตรวจสอบข้อมูล</th>
+                <th style={{ width: headerWidths['createdAt'] || 160 }} className="px-4 py-2 border-r border-ui-border relative group">
+                  <span className="truncate block">วันที่เข้าสู่ระบบ</span>
+                  <div onMouseDown={(e) => handleResize('header', 'createdAt', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                    <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                  </div>
+                </th>
+                <th style={{ width: headerWidths['status'] || 120 }} className="px-4 py-2 border-r border-ui-border text-center relative group">
+                  <span className="truncate block">สถานะ</span>
+                  <div onMouseDown={(e) => handleResize('header', 'status', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                    <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                  </div>
+                </th>
+                <th style={{ width: headerWidths['checkData'] || 320 }} className="px-4 py-2 text-left relative group">
+                  <span className="truncate block">ตรวจสอบข้อมูล</span>
+                  <div onMouseDown={(e) => handleResize('header', 'checkData', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                    <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-ui-border/10">
@@ -211,21 +257,28 @@ export function DataViewTab({
                     <td className="px-4 py-2 border-r border-ui-border/10 text-ui-muted">
                       {h.createdAtDisplay || (h.createdAt ? new Date(h.createdAt).toLocaleString('th-TH') : "-")}
                     </td>
-                    <td className="px-4 py-2 text-center">
+                    <td className="px-4 py-2 border-r border-ui-border/10 text-center">
                       {h.as400Status ?  (
                         <span className="text-[12px] font-medium text-red-600 uppercase">เคยนำเข้าแล้ว</span>
                       ) : (
                         <span className="text-[12px] font-medium text-ui-muted uppercase opacity-50">รอนำเข้า</span>
                       )}
                     </td>
-                    <td className="px-4 py-2 text-center">
-                      {h.isCustomerValid === false ? (
-                        <span className="text-[12px] font-medium text-red-600 px-2 py-0.5 rounded ">ไม่พบลูกค้า</span>
-                      ) : h.hasDetailError === true ? (
-                        <span className="text-[12px] font-medium text-orange-600 px-2 py-0.5 "> ข้อมูลผิดปกติ </span>
-                      ) : (
-                        <span className="text-[12px] font-medium text-emerald-600 ">ข้อมูลถูกต้อง</span>
-                      )}
+                    <td className="px-4 py-2 text-left">
+                      {(() => {
+                        const noCustomer = !h.isCustomerValid;
+                        const noProduct = !!h.hasDetailError;
+                        
+                        if (noCustomer && noProduct) {
+                          return <span className="text-[12px] font-medium text-red-600 px-2 py-0.5 ">บาร์โค้ดและชื่อลูกค้า ไม่ตรงฐานข้อมูล</span>;
+                        } else if (noCustomer) {
+                          return <span className="text-[12px] font-medium text-red-600 px-2 py-0.5 ">ชื่อลูกค้าไม่ตรงฐานข้อมูล</span>;
+                        } else if (noProduct) {
+                          return <span className="text-[12px] font-medium text-orange-600 px-2 py-0.5 ">บาร์โค้ดไม่ตรงฐานข้อมูล</span>;
+                        } else {
+                          return <span className="text-[12px] font-medium text-emerald-600 px-2 py-0.5 ">ข้อมูลถูกต้อง</span>;
+                        }
+                      })()}
                     </td>
                   </tr>
                 );
@@ -236,7 +289,7 @@ export function DataViewTab({
       </div>
 
       {/* --- ตาราง DETAIL (รายการสินค้า) --- */}
-      <div className="flex-[2] min-h-0 flex flex-col bg-ui-card border border-ui-border rounded-lg overflow-hidden shadow-2xl">
+      <div className="flex-none flex flex-col bg-ui-card border border-ui-border rounded-lg shadow-2xl">
         <div className="px-4 py-1.5 border-b border-ui-border bg-ui-bg/50 flex justify-between items-center whitespace-nowrap">
           <div className="flex items-center gap-2">
             <h3 className="text-xs font-black uppercase text-ui-text">รายละเอียดรายการสินค้า</h3>
@@ -251,7 +304,7 @@ export function DataViewTab({
             </div>
           )}
         </div>
-        <div className="flex-1 overflow-auto custom-scrollbar text-xs">
+        <div className="overflow-x-auto custom-scrollbar text-xs">
           {selectedHeaders.length > 0 ? (
             <table className="w-full text-left border-collapse min-w-[1400px] table-fixed">
               <thead className="sticky top-0 bg-ui-bg border-b border-ui-border">

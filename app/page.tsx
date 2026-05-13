@@ -37,6 +37,20 @@ function DashboardContent() {
     viewTarget, setViewTarget, handleDelete
   } = useDashboardActions();
 
+  // 🌍 เปิดเผย setActiveTab ให้กับระบบภายนอก (สำหรับเด้งหน้าจออัตโนมัติ)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).setDashboardActiveTab = (tab: any) => {
+        setActiveTab(tab);
+      };
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        delete (window as any).setDashboardActiveTab;
+      }
+    };
+  }, [setActiveTab]);
+
   //  Data Fetching Hook
   const masterData = useMasterData(activeTab);
 

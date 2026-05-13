@@ -25,7 +25,7 @@ export function useMasterData(activeTab: string) {
   
   //  Pagination State (Local only for maximum speed)
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 50;
 
   //  Reference to track tab changes
   const lastTab = useRef(activeTab);

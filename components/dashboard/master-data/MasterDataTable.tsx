@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MasterData, TabType, Customer, Product, Address } from "@/app/edi";
 
@@ -34,6 +35,39 @@ export function MasterDataTable({
 }: TableProps) {
 
   const isAdmin = userRole === "admin";
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+
+  // ฟังก์ชันลอจิกการลากปรับขนาดคอลัมน์
+  const handleResize = (column: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const startX = e.pageX;
+    const startWidth = columnWidths[column] || 100;
+
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.zIndex = '9999';
+    overlay.style.cursor = 'col-resize';
+    document.body.appendChild(overlay);
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.pageX - startX;
+      const newWidth = Math.max(60, startWidth + deltaX);
+      
+      setColumnWidths(prev => ({ ...prev, [column]: newWidth }));
+    };
+
+    const onMouseUp = () => {
+      document.body.removeChild(overlay);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
 
   if (data.length === 0) {
     return (
@@ -53,43 +87,118 @@ export function MasterDataTable({
   const stickyRightCell = "md:sticky md:right-0 z-10 bg-ui-card group-hover:bg-brand-primary/[0.03] md:shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] transition-colors border-l border-ui-border/20 md:border-none";
 
   // Dynamic padding based on tab (Tight padding to match EDI center)
-  const cellPadding = "px-4 py-2";
+  const cellPadding = "px-1.5 py-1";
+  const colBorder = "border-r border-ui-border/30";
 
   return (
     <div className="w-full flex-1 flex flex-col bg-transparent overflow-hidden">
       <div className="flex-1 overflow-auto custom-scrollbar">
-        <table className={`text-left text-sm border-separate border-spacing-0 ${activeTab === "address" ? "min-w-[2800px]" : "min-w-full"}`}>
+        <table className={`w-full text-left text-[13px] border-collapse ${activeTab === "address" ? "min-w-[1800px]" : "min-w-full"}`}>
           <thead className="sticky top-0 z-20">
-            <tr className="bg-ui-bg text-ui-muted tracking-widest font-medium uppercase text-[12px]">
+            <tr className="bg-ui-bg text-ui-muted tracking-tight font-bold uppercase text-[12px] border-b border-ui-border">
               {activeTab === "customer" && (
                 <>
-                  <th className={`${cellPadding} border-b border-ui-border w-[120px] ${stickyLeftHeader}`}>Code</th>
-                  <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm`}>EAN</th>
-                  <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm`}>Company Name</th>
-                  <th className={`${cellPadding} border-b border-ui-border text-right bg-ui-bg/95 backdrop-blur-sm`}>Short Name</th>
+                  <th style={{ width: columnWidths['cus_code'] || 100 }} className={`${cellPadding} ${colBorder} ${stickyLeftHeader} relative group`}>
+                    <span className="truncate block">Code</span>
+                    <div onMouseDown={(e) => handleResize('cus_code', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
+                  <th style={{ width: columnWidths['cus_ean'] || 140 }} className={`${cellPadding} ${colBorder} bg-ui-bg/95 backdrop-blur-sm relative group`}>
+                    <span className="truncate block">EAN</span>
+                    <div onMouseDown={(e) => handleResize('cus_ean', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
+                  <th style={{ width: columnWidths['cus_company'] || 300 }} className={`${cellPadding} ${colBorder} bg-ui-bg/95 backdrop-blur-sm relative group`}>
+                    <span className="truncate block">Company Name</span>
+                    <div onMouseDown={(e) => handleResize('cus_company', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
+                  <th style={{ width: columnWidths['cus_short'] || 180 }} className={`${cellPadding} ${colBorder} text-right bg-ui-bg/95 backdrop-blur-sm relative group`}>
+                    <span className="truncate block">Short Name</span>
+                    <div onMouseDown={(e) => handleResize('cus_short', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
                   <th className={`${cellPadding} border-b border-ui-border text-center w-44 ${stickyRightHeader}`}>Management</th>
                 </>
               )}
               {activeTab === "product" && (
                 <>
-                  <th className={`${cellPadding} border-b border-ui-border w-[150px] ${stickyLeftHeader}`}>Barcode</th>
-                  <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm`}>Internal</th>
-                  <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm`}>Description</th>
+                  <th style={{ width: columnWidths['prod_barcode'] || 160 }} className={`${cellPadding} ${colBorder} ${stickyLeftHeader} relative group`}>
+                    <span className="truncate block">Barcode</span>
+                    <div onMouseDown={(e) => handleResize('prod_barcode', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
+                  <th style={{ width: columnWidths['prod_internal'] || 130 }} className={`${cellPadding} ${colBorder} bg-ui-bg/95 backdrop-blur-sm relative group`}>
+                    <span className="truncate block">Internal</span>
+                    <div onMouseDown={(e) => handleResize('prod_internal', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
+                  <th style={{ width: columnWidths['prod_description'] || 400 }} className={`${cellPadding} ${colBorder} bg-ui-bg/95 backdrop-blur-sm relative group`}>
+                    <span className="truncate block">Description</span>
+                    <div onMouseDown={(e) => handleResize('prod_description', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
                   <th className={`${cellPadding} border-b border-ui-border text-center w-44 ${stickyRightHeader}`}>Management</th>
                 </>
               )}
               {activeTab === "address" && (
                 <>
-                  <th className={`${cellPadding} border-b border-ui-border w-[120px] ${stickyLeftHeader}`}>Cust No</th>
-                  <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm w-[250px]`}>Company Name</th>
-                  <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm w-[200px]`}>Local Name</th>
-                  <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm`}>EAN</th>
-                  <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm w-[300px]`}>Address 1</th>
-                  <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm w-[300px]`}>Address 2</th>
-                  <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm`}>City</th>
-                  <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm`}>Zip</th>
-                  <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm`}>Tel</th>
-                  <th className={`${cellPadding} border-b border-ui-border bg-ui-bg/95 backdrop-blur-sm text-center w-44 ${stickyRightHeader}`}>Management</th>
+                  <th style={{ width: columnWidths['addr_code'] || 140 }} className={`${cellPadding} ${colBorder} ${stickyLeftHeader} relative group`}>
+                    <span className="truncate block">Customer_Code</span>
+                    <div onMouseDown={(e) => handleResize('addr_code', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
+                  <th style={{ width: columnWidths['addr_name'] || 240 }} className={`${cellPadding} ${colBorder} bg-ui-bg/95 backdrop-blur-sm relative group`}>
+                    <span className="truncate block">Customer_Name</span>
+                    <div onMouseDown={(e) => handleResize('addr_name', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
+                  <th style={{ width: columnWidths['addr_addr1'] || 240 }} className={`${cellPadding} ${colBorder} bg-ui-bg/95 backdrop-blur-sm relative group`}>
+                    <span className="truncate block">Cus_Address1</span>
+                    <div onMouseDown={(e) => handleResize('addr_addr1', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
+                  <th style={{ width: columnWidths['addr_addr2'] || 200 }} className={`${cellPadding} ${colBorder} bg-ui-bg/95 backdrop-blur-sm relative group`}>
+                    <span className="truncate block">Cus_Address2</span>
+                    <div onMouseDown={(e) => handleResize('addr_addr2', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
+                  <th style={{ width: columnWidths['addr_addr3'] || 150 }} className={`${cellPadding} ${colBorder} bg-ui-bg/95 backdrop-blur-sm relative group`}>
+                    <span className="truncate block">Cus_Address3</span>
+                    <div onMouseDown={(e) => handleResize('addr_addr3', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
+                  <th style={{ width: columnWidths['addr_tel'] || 120 }} className={`${cellPadding} ${colBorder} bg-ui-bg/95 backdrop-blur-sm relative group`}>
+                    <span className="truncate block">Tel</span>
+                    <div onMouseDown={(e) => handleResize('addr_tel', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
+                  <th style={{ width: columnWidths['addr_fax'] || 120 }} className={`${cellPadding} ${colBorder} bg-ui-bg/95 backdrop-blur-sm relative group`}>
+                    <span className="truncate block">Fax</span>
+                    <div onMouseDown={(e) => handleResize('addr_fax', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
+                  <th style={{ width: columnWidths['addr_cus_name'] || 160 }} className={`${cellPadding} ${colBorder} bg-ui-bg/95 backdrop-blur-sm relative group`}>
+                    <span className="truncate block">Cus_Name</span>
+                    <div onMouseDown={(e) => handleResize('addr_cus_name', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
+                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
+                    </div>
+                  </th>
+                  <th className={`${cellPadding} border-b border-ui-border text-center w-44 ${stickyRightHeader}`}>Management</th>
                 </>
               )}
             </tr>
@@ -97,7 +206,7 @@ export function MasterDataTable({
           <tbody className="divide-y divide-ui-border/10 text-ui-text relative">
             <AnimatePresence mode="popLayout" initial={false}>
               {data.map((item, index) => {
-                const rawId = String(isCustomer(item) ? item.customer_code : isProduct(item) ? item.ean_product_code : item.customer_no || "").trim();
+                const rawId = String(isCustomer(item) ? item.customer_code : isProduct(item) ? item.ean_product_code : isAddress(item) ? item.customer_no : "").trim();
                 const rowKey = `${activeTab}-${rawId}-${index}`;
 
                 return (
@@ -108,21 +217,21 @@ export function MasterDataTable({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
-                    className="hover:bg-brand-primary/[0.03] transition-colors group"
+                    className="hover:bg-brand-primary/[0.03] transition-colors group border-b border-ui-border/5"
                   >
                     {/* 🏢 CUSTOMER RENDER */}
                     {activeTab === "customer" && isCustomer(item) && (
                       <>
-                        <td className={`${cellPadding} whitespace-nowrap font-medium text-brand-primary w-[120px] ${stickyLeftCell}`}>
+                        <td style={{ width: columnWidths['cus_code'] || 100 }} className={`${cellPadding} ${colBorder} whitespace-nowrap font-medium text-brand-primary ${stickyLeftCell}`}>
                           {item.customer_code}
                         </td>
-                        <td className={`${cellPadding} whitespace-nowrap font-mono`}>
+                        <td style={{ width: columnWidths['cus_ean'] || 140 }} className={`${cellPadding} ${colBorder} whitespace-nowrap font-mono text-[12px]`}>
                           {item.ean_location_code ?? "-"}
                         </td>
-                        <td className={`${cellPadding} whitespace-nowrap font-medium`}>
-                          {item.company_name ?? "-"}
+                        <td style={{ width: columnWidths['cus_company'] || 300 }} className={`${cellPadding} ${colBorder} whitespace-nowrap font-medium`}>
+                          <div className="max-w-[400px] truncate">{item.company_name ?? "-"}</div>
                         </td>
-                        <td className={`${cellPadding} text-right whitespace-nowrap text-ui-muted font-medium`}>
+                        <td style={{ width: columnWidths['cus_short'] || 180 }} className={`${cellPadding} ${colBorder} text-right whitespace-nowrap text-ui-muted font-medium`}>
                           {item.short_name ?? "-"}
                         </td>
                       </>
@@ -131,14 +240,14 @@ export function MasterDataTable({
                     {/* 📦 PRODUCT RENDER */}
                     {activeTab === "product" && isProduct(item) && (
                       <>
-                        <td className={`${cellPadding} whitespace-nowrap font-medium text-brand-secondary w-[150px] ${stickyLeftCell}`}>
+                        <td style={{ width: columnWidths['prod_barcode'] || 160 }} className={`${cellPadding} ${colBorder} whitespace-nowrap font-medium text-brand-secondary ${stickyLeftCell}`}>
                           {item.ean_product_code}
                         </td>
-                        <td className={`${cellPadding} whitespace-nowrap font-mono font-medium`}>
+                        <td style={{ width: columnWidths['prod_internal'] || 130 }} className={`${cellPadding} ${colBorder} whitespace-nowrap font-mono font-medium`}>
                           {item.internal_product_code ?? "-"}
                         </td>
-                        <td className={`${cellPadding} whitespace-nowrap font-medium`}>
-                          {item.product_description ?? "-"}
+                        <td style={{ width: columnWidths['prod_description'] || 400 }} className={`${cellPadding} ${colBorder} whitespace-nowrap font-medium`}>
+                          <div className="max-w-[600px] truncate">{item.product_description ?? "-"}</div>
                         </td>
                       </>
                     )}
@@ -146,21 +255,18 @@ export function MasterDataTable({
                     {/* 🏠 ADDRESS RENDER */}
                     {activeTab === "address" && isAddress(item) && (
                       <>
-                        <td className={`${cellPadding} whitespace-nowrap font-medium text-brand-primary w-[120px] ${stickyLeftCell}`}>
-                          {item.customer_no}
+                        <td style={{ width: columnWidths['addr_code'] || 140 }} className={`${cellPadding} ${colBorder} whitespace-nowrap font-medium text-brand-primary ${stickyLeftCell}`}>
+                          {item.ean_location_code || "-"}
                         </td>
-                        <td className={`${cellPadding} whitespace-nowrap font-medium`}>
-                          <div className="max-w-[250px] truncate">{item.company_name ?? "-"}</div>
+                        <td style={{ width: columnWidths['addr_name'] || 240 }} className={`${cellPadding} ${colBorder} whitespace-nowrap font-medium`}>
+                          <div className="max-w-[220px] truncate">{item.company_name || item.local_name || "-"}</div>
                         </td>
-                        <td className={`${cellPadding} whitespace-nowrap font-medium text-ui-muted`}>
-                          <div className="max-w-[200px] truncate">{item.local_name ?? "-"}</div>
-                        </td>
-                        <td className={`${cellPadding} whitespace-nowrap font-mono`}>{item.ean_location_code ?? "-"}</td>
-                        <td className={`${cellPadding} whitespace-nowrap`}><div className="max-w-[300px] truncate">{item.address1 ?? "-"}</div></td>
-                        <td className={`${cellPadding} whitespace-nowrap`}><div className="max-w-[300px] truncate">{item.address2 ?? "-"}</div></td>
-                        <td className={`${cellPadding} whitespace-nowrap`}>{item.city ?? "-"}</td>
-                        <td className={`${cellPadding} whitespace-nowrap font-mono text-brand-secondary`}>{item.zip_code ?? "-"}</td>
-                        <td className={`${cellPadding} whitespace-nowrap`}>{item.telephone ?? "-"}</td>
+                        <td style={{ width: columnWidths['addr_addr1'] || 240 }} className={`${cellPadding} ${colBorder} whitespace-nowrap`}><div className="max-w-[220px] truncate">{item.address1 ?? "-"}</div></td>
+                        <td style={{ width: columnWidths['addr_addr2'] || 200 }} className={`${cellPadding} ${colBorder} whitespace-nowrap`}><div className="max-w-[180px] truncate">{item.address2 ?? "-"}</div></td>
+                        <td style={{ width: columnWidths['addr_addr3'] || 150 }} className={`${cellPadding} ${colBorder} whitespace-nowrap`}>{item.city ?? "-"}</td>
+                        <td style={{ width: columnWidths['addr_tel'] || 120 }} className={`${cellPadding} ${colBorder} whitespace-nowrap font-mono text-[12px]`}>{item.telephone ?? "-"}</td>
+                        <td style={{ width: columnWidths['addr_fax'] || 120 }} className={`${cellPadding} ${colBorder} whitespace-nowrap font-mono text-[12px]`}>{item.fax_no ?? "-"}</td>
+                        <td style={{ width: columnWidths['addr_cus_name'] || 160 }} className={`${cellPadding} ${colBorder} whitespace-nowrap text-ui-muted font-medium`}>{item.customer_no || "-"}</td>
                       </>
                     )}
 

@@ -73,43 +73,46 @@ export async function importAddressMaster() {
     const lines = content.split(/\r\n|\n|\r/);
 
     await db.delete(custAddress);
+    
+    // บันทึก Log การล้างข้อมูล
+    console.log("Cleared cust_address table for fresh import");
 
     const dataToInsert: NewAddress[] = []; 
 
     for (const line of lines) {
-      if (!line.startsWith("|")) continue;
+      const trimmedLine = line.trim();
+      if (!trimmedLine || !trimmedLine.includes("|")) continue;
       
-      const fields = line.split("|");
-      if (!fields[1] || fields[1].trim() === "") continue;
-
-      const cityZipRaw = fields[5] || "";
-      const city = cityZipRaw.substring(0, 20).trim();
-      const zip = cityZipRaw.substring(20, 25).trim();
+      // แยกด้วย | แล้วดึงค่าดิบออกมาทั้งหมด (รวมถึงช่องว่าง)
+      const fields = line.split("|").map(f => f.trim());
+      
+      // ข้อมูลเริ่มที่ index 1 เพราะบรรทัดมักจะเริ่มด้วย | ตัวแรก
+      if (fields.length < 2) continue;
 
       dataToInsert.push({
-        ean_location_code: clean(fields[1]),
-        company_name: clean(fields[2]),
-        address1: clean(fields[3]),
-        address2: clean(fields[4]),
-        city: city,
-        zip_code: zip,
-        telephone: clean(fields[6]),
-        fax_no: clean(fields[7]),
-        customer_no: clean(fields[8]),
-        ship_to_code: clean(fields[9]),
-        usage_code: clean(fields[10]),
-        product_table: clean(fields[11]),
-        local_name: clean(fields[12]),
-        branch_code: clean(fields[13]),
-        tax_id: clean(fields[14]),
-        branch_short_name: clean(fields[15]),
-        signature: clean(fields[16]),
-        doc_ref_pttrm: clean(fields[17]),
+        ean_location_code: fields[1] || "", 
+        company_name: fields[2] || "",
+        address1: fields[3] || "",
+        address2: fields[4] || "",
+        city: fields[5] || "",
+        zip_code: fields[6] || "",
+        telephone: fields[7] || "",
+        fax_no: fields[8] || "",
+        customer_no: fields[9] || "",
+        ship_to_code: fields[10] || "",
+        usage_code: fields[11] || "",
+        product_table: fields[12] || "",
+        local_name: fields[13] || "",
+        branch_code: fields[14] || "",
+        tax_id: fields[15] || "",
+        branch_short_name: fields[16] || "",
+        signature: fields[17] || "",
+        doc_ref_pttrm: fields[18] || "",
       });
     }
 
     if (dataToInsert.length > 0) {
-      const chunkSize = 1000;
+      const chunkSize = 500;
       for (let i = 0; i < dataToInsert.length; i += chunkSize) {
         const chunk = dataToInsert.slice(i, i + chunkSize);
         await db.insert(custAddress).values(chunk);
@@ -117,9 +120,10 @@ export async function importAddressMaster() {
     }
 
     revalidatePath("/");
-    return { success: true, message: `นำเข้าข้อมูลที่อยู่สำเร็จ ${dataToInsert.length} รายการ` };
+    return { success: true, message: `นำเข้าข้อมูลที่อยู่สำเร็จ ${dataToInsert.length} รายการ (บันทึกข้อมูลครบถ้วนทุกฟิลด์)` };
   } catch (error: unknown) {
     const err = error as Error;
+    console.error("Import Address Error:", err);
     return { success: false, message: `ผิดพลาด: ${err.message}` };
   }
 }
