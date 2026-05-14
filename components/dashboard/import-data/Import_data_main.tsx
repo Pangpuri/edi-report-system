@@ -15,8 +15,9 @@ import {
 } from "@/app/actions/edi/import-actions";
 import { upsertToAS400, deleteSelectedTempAction } from "@/app/actions/edi/as400-actions";
 import { useSession } from "@/lib/auth-client";
-import { SessionUser } from "@/app/edi";
+import { SessionUser, SlideBarTab } from "@/app/edi";
 import { useToast } from "@/components/ToastProvider";
+import { useColumnResizer } from "@/hooks/useColumnResizer";
 
 // Import types
 import { 
@@ -29,8 +30,9 @@ import { DataViewTab } from "./(tabs)/DataViewTab";
 import { ArchivesTab } from "./(tabs)/ArchivesTab";
 import { LoadingOverlay } from "./(shared)/LoadingOverlay";
 import { ImportModals } from "./(shared)/ImportModals";
+import { AddProductChangeModal } from "@/components/dashboard/master-data/products/AddProductChangeModal";
 
-export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (tab: any) => void }) {
+export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (tab: SlideBarTab) => void }) {
   const { showToast } = useToast();
   const { data: session } = useSession();
   
@@ -67,8 +69,8 @@ export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (ta
   const [isPending, startTransition] = useTransition();
   const [detailCache, setDetailCache] = useState<Record<string, EDLData[]>>({});
 
-  const [headerWidths, setHeaderWidths] = useState<Record<string, number>>({});
-  const [detailWidths, setDetailWidths] = useState<Record<string, number>>({});
+  const { columnWidths: headerWidths, handleResize: handleHeaderResize } = useColumnResizer();
+  const { columnWidths: detailWidths, handleResize: handleDetailResize } = useColumnResizer();
 
   const [headerData, setHeaderData] = useState<EDHData[]>([]);
   const [selectedHeaders, setSelectedHeaders] = useState<EDHData[]>([]);
@@ -79,6 +81,7 @@ export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (ta
   // --- Modal States ---
   const [customerModalTarget, setCustomerModalTarget] = useState<EDHData | null>(null);
   const [productModalTarget, setProductModalTarget] = useState<{ header: EDHData; details: EDLData[] } | null>(null);
+  const [isProductChangeModalOpen, setIsProductChangeModalOpen] = useState(false);
 
   // --- Effects ---
   useEffect(() => {
@@ -147,40 +150,8 @@ export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (ta
   // --- Handlers ---
 
   const handleResize = (table: 'header' | 'detail', column: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const startX = e.pageX;
-    const startWidth = table === 'header' 
-      ? (headerWidths[column] || 150) 
-      : (detailWidths[column] || 150);
-
-    const overlay = document.createElement('div');
-    overlay.style.position = 'fixed';
-    overlay.style.inset = '0';
-    overlay.style.zIndex = '9999';
-    overlay.style.cursor = 'col-resize';
-    document.body.appendChild(overlay);
-
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.pageX - startX;
-      const newWidth = Math.max(60, startWidth + deltaX);
-      
-      if (table === 'header') {
-        setHeaderWidths(prev => ({ ...prev, [column]: newWidth }));
-      } else {
-        setDetailWidths(prev => ({ ...prev, [column]: newWidth }));
-      }
-    };
-
-    const onMouseUp = () => {
-      document.body.removeChild(overlay);
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    };
-
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
+    if (table === 'header') handleHeaderResize(column, e);
+    else handleDetailResize(column, e);
   };
 
   const processUpload = async (files: FileList | File[]) => {
@@ -413,7 +384,9 @@ export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (ta
         if (res.success) {
           successCount++;
           if (res.tabContent && res.fileName) {
-            tabFiles.push({ content: res.tabContent, name: res.fileName });
+            // เปลี่ยนนามสกุลไฟล์จาก .tab เป็น .txt
+            const exportName = res.fileName.replace(/\.tab$/i, ".txt");
+            tabFiles.push({ content: res.tabContent, name: exportName });
           }
         } else {
           showToast(res.message, "error");
@@ -423,9 +396,8 @@ export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (ta
       }
     }
     
-    // ดำเนินการดาวน์โหลดไฟล์ .tab ถ้ามี
+    // ดำเนินการดาวน์โหลดไฟล์ .txt ถ้ามี
     if (tabFiles.length > 0) {
-      showToast(`กำลังเตรียมดาวน์โหลดไฟล์ .tab จำนวน ${tabFiles.length} ไฟล์...`, "success");
       for (const file of tabFiles) {
         const blob = new Blob([file.content], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -446,9 +418,7 @@ export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (ta
       showToast(`โอนข้อมูลสำเร็จ ${successCount} จาก ${selectedHeaders.length} รายการ (ข้อมูลถูกกระจายไปที่ History และ Record แล้ว)`, "success");
       
       // 🚀 เด้งไปที่หน้า "รายการข้อมูลก่อนพิมพ์" ทันทีที่โอนสำเร็จ
-      if (setParentTab) {
-        setParentTab("processed-data");
-      }
+      if (setParentTab) setParentTab("processed-data");
     }
     
     setSelectedHeaders([]);
@@ -550,6 +520,7 @@ export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (ta
               handleTransferToAS400={handleTransferToAS400}
               setCustomerModalTarget={setCustomerModalTarget}
               setProductModalTarget={setProductModalTarget}
+              onOpenProductChange={() => setIsProductChangeModalOpen(true)}
             />
           )}
 
@@ -575,6 +546,12 @@ export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (ta
         setCustomerModalTarget={setCustomerModalTarget}
         productModalTarget={productModalTarget}
         setProductModalTarget={setProductModalTarget}
+        onSuccess={refreshAfterMasterUpdate}
+      />
+
+      <AddProductChangeModal 
+        isOpen={isProductChangeModalOpen}
+        onClose={() => setIsProductChangeModalOpen(false)}
         onSuccess={refreshAfterMasterUpdate}
       />
     </div>

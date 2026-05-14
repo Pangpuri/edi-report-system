@@ -2,10 +2,11 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useMemo } from "react";
 import { 
   AlertTriangle, Trash2, ClipboardCheck, 
   CheckCircle2, Loader2, MousePointer2,
-  Users2, Box
+  Users2, Box, GitCompare
 } from "lucide-react";
 import { EDHData, EDLData } from "../types";
 
@@ -25,6 +26,7 @@ interface DataViewTabProps {
   handleTransferToAS400: () => void;
   setCustomerModalTarget: (val: EDHData | null) => void;
   setProductModalTarget: (val: { header: EDHData; details: EDLData[] } | null) => void;
+  onOpenProductChange: () => void; // New prop
 }
 
 export function DataViewTab({
@@ -42,19 +44,39 @@ export function DataViewTab({
   handleDeleteTemp,
   handleTransferToAS400,
   setCustomerModalTarget,
-  setProductModalTarget
+  setProductModalTarget,
+  onOpenProductChange
 }: DataViewTabProps) {
   // คำนวณจำนวนรายการที่มีปัญหา (ไม่พบลูกค้า หรือ สินค้าใน PO มีปัญหา)
-  const incompleteCount = headerData.filter(h => h.isCustomerValid === false || h.hasDetailError === true).length;
+  const incompleteCount = useMemo(() => 
+    headerData.filter(h => h.isCustomerValid === false || h.hasDetailError === true).length,
+    [headerData]
+  );
 
   // ตรวจสอบว่าในรายการที่เลือก "มีรายการที่ผิดปกติ" รวมอยู่ด้วยหรือไม่ ผิดปกติจะไม่ให้โอนไปได้ เพราะไม่ตรงตามฐานข้อมูลหลัก
-  const hasInvalidSelection = selectedHeaders.some(
-    (h) => h.isCustomerValid === false || h.hasDetailError === true
+  const hasInvalidSelection = useMemo(() => 
+    selectedHeaders.some((h) => h.isCustomerValid === false || h.hasDetailError === true),
+    [selectedHeaders]
   );
 
   // เงื่อนไขปุ่มเปิด Modal (ต้องเลือกไฟล์เดียว และไฟล์นั้นต้องมี Error)
   const canEditCustomer = selectedHeaders.length === 1 && selectedHeaders[0].isCustomerValid === false;
   const canEditProduct = selectedHeaders.length === 1 && selectedHeaders[0].hasDetailError === true;
+
+  // Helper สำหรับการ Render สถานะการตรวจสอบ
+  const renderValidationStatus = (h: EDHData) => {
+    const noCustomer = !h.isCustomerValid;
+    const noProduct = !!h.hasDetailError;
+
+    if (noCustomer && noProduct) {
+      return <span className="text-[12px] font-medium text-red-600 px-2 py-0.5">บาร์โค้ดและชื่อลูกค้า ไม่ตรงฐานข้อมูล</span>;
+    } else if (noCustomer) {
+      return <span className="text-[12px] font-medium text-red-600 px-2 py-0.5">ชื่อลูกค้าไม่ตรงฐานข้อมูล</span>;
+    } else if (noProduct) {
+      return <span className="text-[12px] font-medium text-orange-600 px-2 py-0.5">บาร์โค้ดไม่ตรงฐานข้อมูล</span>;
+    }
+    return <span className="text-[12px] font-medium text-emerald-600 px-2 py-0.5">ข้อมูลถูกต้อง</span>;
+  };
 
   return (
     <motion.div 
@@ -64,14 +86,14 @@ export function DataViewTab({
       className="flex-1 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-2"
     >
       {/* แถบเครื่องมือ: แจ้งเตือน และ ปุ่มโอนข้อมูล/ลบข้อมูล */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-ui-bg/50 p-3 rounded-lg border border-ui-border">
+      <div className="sticky top-0 z-30 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-ui-card/90 backdrop-blur-md p-3 rounded-lg border border-ui-border shadow-sm">
         <div className="flex flex-col gap-1">
           <div className={`flex items-center gap-2 ${incompleteCount > 0 ? "text-status-error" : "text-emerald-600"}`}>
             <AlertTriangle size={14} />
             <span className="text-sm font-bold uppercase">ไม่ตรงตามฐานข้อมูลหรือมีปัญหา : {incompleteCount} รายการ</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button 
             onClick={() => canEditCustomer && setCustomerModalTarget(selectedHeaders[0])}
             disabled={!canEditCustomer}
@@ -95,6 +117,12 @@ export function DataViewTab({
             <Box size={14} /> เพิ่ม/แก้ไข สินค้า
           </button>
           <button 
+            onClick={onOpenProductChange}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-lg text-[12px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all shadow-sm"
+          >
+            <GitCompare size={14} /> สินค้าที่ต้องเปลี่ยนรหัส
+          </button>
+          <button 
             onClick={handleDeleteTemp}
             disabled={selectedHeaders.length === 0 || isTransferring}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-black uppercase tracking-widest transition-all ${
@@ -114,7 +142,7 @@ export function DataViewTab({
                 : "bg-ui-border text-ui-muted cursor-not-allowed"
             }`}
           >
-            <ClipboardCheck size={14} /> โอนเข้าฐานข้อมูลก่อนพิมพ์ ({selectedHeaders.length})
+            <ClipboardCheck size={14} /> โอนเข้า AS400 / ข้อมูลก่อนพิมพ์ ({selectedHeaders.length})
           </button>
         </div>
       </div>
@@ -223,7 +251,7 @@ export function DataViewTab({
               {headerData.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="px-4 py-20 text-center text-ui-muted italic">
-                    ไม่พบข้อมูลใบสั่งซื้อที่รอการประมวลผล กรุณานำเข้าไฟล์และกด ประมวลผลไฟล์ 📥
+                    ไม่พบข้อมูลใบสั่งซื้อที่รอการประมวลผล กรุณานำเข้าไฟล์
                   </td>
                 </tr>
               ) : headerData.map(h => {
@@ -265,20 +293,7 @@ export function DataViewTab({
                       )}
                     </td>
                     <td className="px-4 py-2 text-left">
-                      {(() => {
-                        const noCustomer = !h.isCustomerValid;
-                        const noProduct = !!h.hasDetailError;
-                        
-                        if (noCustomer && noProduct) {
-                          return <span className="text-[12px] font-medium text-red-600 px-2 py-0.5 ">บาร์โค้ดและชื่อลูกค้า ไม่ตรงฐานข้อมูล</span>;
-                        } else if (noCustomer) {
-                          return <span className="text-[12px] font-medium text-red-600 px-2 py-0.5 ">ชื่อลูกค้าไม่ตรงฐานข้อมูล</span>;
-                        } else if (noProduct) {
-                          return <span className="text-[12px] font-medium text-orange-600 px-2 py-0.5 ">บาร์โค้ดไม่ตรงฐานข้อมูล</span>;
-                        } else {
-                          return <span className="text-[12px] font-medium text-emerald-600 px-2 py-0.5 ">ข้อมูลถูกต้อง</span>;
-                        }
-                      })()}
+                      {renderValidationStatus(h)}
                     </td>
                   </tr>
                 );

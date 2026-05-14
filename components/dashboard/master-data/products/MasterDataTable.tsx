@@ -1,40 +1,50 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { MasterData, TabType, Customer, Product, Address } from "@/app/edi";
+import { motion, AnimatePresence } from "framer-motion";
+import { Eye, Edit, Trash2, DollarSign } from "lucide-react";
 
-interface TableProps {
+interface MasterDataTableProps {
   data: MasterData[];
   activeTab: TabType;
+  userRole: string;
   onDelete: (id: string) => void;
   onEdit: (item: MasterData) => void;
   onView: (item: MasterData) => void;
   onManagePrice?: (item: MasterData) => void;
-  userRole?: string;
-  currentPage?: number;
-  totalPages?: number;
-  onNextPage?: () => void;
-  onPrevPage?: () => void;
+  currentPage: number;
+  totalPages: number;
+  onNextPage: () => void;
+  onPrevPage: () => void;
 }
 
+// Type guards using 'in' operator for better narrowing
 export const isCustomer = (item: MasterData): item is Customer => "customer_code" in item;
 export const isProduct = (item: MasterData): item is Product => "ean_product_code" in item;
 export const isAddress = (item: MasterData): item is Address => "customer_no" in item;
 
-export function MasterDataTable({ 
-  data, 
-  activeTab, 
+// Helper to get unique ID from MasterData item safely
+export const getItemId = (item: MasterData): string => {
+  if (isCustomer(item)) return item.customer_code;
+  if (isProduct(item)) return item.ean_product_code;
+  if (isAddress(item)) return item.customer_no;
+  return "";
+};
+
+export function MasterDataTable({
+  data,
+  activeTab,
+  userRole,
   onDelete,
   onEdit,
   onView,
   onManagePrice,
-  userRole,
-  currentPage = 1,
-  totalPages = 1,
+  currentPage,
+  totalPages,
   onNextPage,
-  onPrevPage 
-}: TableProps) {
+  onPrevPage,
+}: MasterDataTableProps) {
 
   const isAdmin = userRole === "admin";
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
@@ -208,7 +218,7 @@ export function MasterDataTable({
           <tbody className="divide-y divide-ui-border/10 text-ui-text relative">
             <AnimatePresence mode="popLayout" initial={false}>
               {data.map((item, index) => {
-                const rawId = String(isCustomer(item) ? item.customer_code : isProduct(item) ? item.ean_product_code : isAddress(item) ? item.customer_no : "").trim();
+                const rawId = getItemId(item); // Use the helper function
                 const rowKey = `${activeTab}-${rawId}-${index}`;
 
                 return (

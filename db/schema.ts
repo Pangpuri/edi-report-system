@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { file } from "zod";
+import { create } from "domain";
 
 // --- กลุ่มตารางระบบ Auth และ User Management ---
 
@@ -263,7 +264,7 @@ export const Edit_Detail = pgTable("Edit_Detail", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-//--- กลุ่มตารางสำหรับเก็บ Log การนำเข้าและการส่งข้อมูลเข้า AS/400 ---
+//--- กลุ่มตารางสำหรับเก็บ Log การนำเข้าและการส่งข้อมูลเข้า AS/400 ---dok
 export const as400_logs = pgTable("as400_logs", {
   id: serial("id").primaryKey(),
   historyId: integer("history_id").references(() => TEDH.id, {
@@ -405,6 +406,23 @@ export const TEDL_history = pgTable("EDL_record", {
   Change_Prod_Name: text("Change_Prod_Name"),
   Check_Name_Old_Prod: text("Check_Name_Old_Prod"), // เก็บชื่อเก่าจากไฟล์ (Audit)
   Created_At: timestamp("Created_At").defaultNow(),
+});
+
+//ข้อมูลการเแปลี่ยนแปลงหน่วยสินค้า สำหรับ Makro
+export const Edit_Unit_Makro = pgTable("Edit_Unit_Makro", {
+  id: serial("id").primaryKey(),
+  product_name: varchar("product_name", { length: 255 }).notNull(),//ชื่อสินค้า
+  product_id: varchar("product_id", { length: 50 }),//รหัสสินค้าจาก prodcode
+  unit_product: numeric("unit_product", { precision: 12 }).notNull(),//จำนวนต่อหน่วย
+  unit_cn: varchar("unit_cn", { length: 10 }).notNull(),//หน่วยที่ต้องการเปลี่ยน
+  //จำนวนส่วนลดปกติ
+  discount_1: numeric("discount_1", { precision: 12, scale: 2 }),
+  discount_2: numeric("discount_2", { precision: 12, scale: 2 }),
+  discount_3: numeric("discount_3", { precision: 12, scale: 2 }),
+  discount_amount: numeric("discount_amount", { precision: 12, scale: 2 }),
+  status: varchar("status", { length: 20 }).default("active"),//active, deleted
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // --- การนิยามความสัมพันธ์ (Relations) ---

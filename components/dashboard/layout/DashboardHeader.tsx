@@ -1,12 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { TabType, SlideBarTab, ViewMode } from "@/app/edi";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import ExportData from "@/components/ExportData";
-import { RefreshCcw, Loader2 } from "lucide-react";
-import { importAllMasterData } from "@/app/actions/master/import-actions";
-import { useToast } from "@/components/ToastProvider";
+import { useToast } from "@/components/ToastProvider"; // Keeping this in case you add other notifications later
 
 interface DashboardHeaderProps {
   activeTab: SlideBarTab;
@@ -16,7 +13,6 @@ interface DashboardHeaderProps {
   userRole?: string;
   refresh?: () => void;
 }
-
 export function DashboardHeader({
   activeTab,
   viewMode,
@@ -26,24 +22,7 @@ export function DashboardHeader({
   refresh
 }: DashboardHeaderProps) {
   const { showToast } = useToast();
-  const [isSyncing, setIsSyncing] = useState(false);
-  const isAdmin = userRole === "admin";
-
-  const handleSyncMasterData = async () => {
-    if (!confirm("คุณต้องการนำเข้าข้อมูล Master Data จากไฟล์ในเครื่องแม่ (data/*.tab) ใช่หรือไม่?\nข้อมูลที่มีอยู่จะถูกอัปเดตหรือเขียนทับ")) return;
-    
-    setIsSyncing(true);
-    try {
-      const res = await importAllMasterData();
-      showToast(res.message, "success");
-      if (refresh) refresh();
-    } catch (error) {
-      console.error("Sync Error:", error);
-      showToast("เกิดข้อผิดพลาดในการเชื่อมต่อระบบนำเข้า", "error");
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+  // Logic for Sync Master removed to prevent accidental usage by users
 
   return (
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-ui-border pb-4 mb-6">
@@ -70,13 +49,13 @@ export function DashboardHeader({
           <div className="flex gap-1 p-1 bg-ui-bg rounded-lg border border-ui-border ml-auto sm:ml-0">
             <button 
               onClick={() => setViewMode("list")} 
-              className={`px-3 py-1.5 rounded-md text-[9px] font-black transition-all ${viewMode === "list" ? "bg-brand-primary text-white" : "text-ui-muted hover:text-ui-text"}`}
+              className={`px-3 py-1.5 rounded-md text-[14px] font-black transition-all ${viewMode === "list" ? "bg-brand-primary text-white" : "text-ui-muted hover:text-ui-text"}`}
             >
               📋 LIST
             </button>
             <button 
               onClick={() => setViewMode("add")} 
-              className={`px-3 py-1.5 rounded-md text-[9px] font-black transition-all ${viewMode === "add" ? "bg-brand-primary text-white" : "text-ui-muted hover:text-ui-text"}`}
+              className={`px-3 py-1.5 rounded-md text-[14px] font-black transition-all ${viewMode === "add" ? "bg-brand-primary text-white" : "text-ui-muted hover:text-ui-text"}`}
             >
               ➕ ADD
             </button>

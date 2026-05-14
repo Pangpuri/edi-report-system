@@ -32,7 +32,7 @@ export function AddProductForm({ onSuccess, initialValues }: AddProductFormProps
       let result;
       
       if (isEdit && initialValues) {
-        // 🛡️ ท่าป้องกัน: ส่ง ID (PK) ไปอัปเดต โดยรับประกันว่าไม่เป็น null/undefined
+        // กัน: ส่ง ID (PK) ไปอัปเดต โดยรับประกันว่าไม่เป็น null/undefined
         const targetId = initialValues.ean_product_code ?? ""; 
         result = await updateProductAction(targetId, data);
       } else {

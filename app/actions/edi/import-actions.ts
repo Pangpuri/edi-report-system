@@ -254,7 +254,8 @@ export async function getEDLByHeadersAction(items: { customerPo: string; fileNam
         customerPo: EDL_temp.Customer_PO,
         customerNum: EDL_temp.Customer_Num,
         seqNum: EDL_temp.Line_Num,
-        Bar_Code_Item: sql<string>`COALESCE(NULLIF(TRIM(${prodcode.ean_product_code}), ''), NULLIF(TRIM(${EDL_temp.Bar_Code_Item}), ''), '-')`,
+        // ยึดบาร์โค้ดจากไฟล์เป็นหลัก (ตามที่คุณแจ้ง)
+        Bar_Code_Item: sql<string>`COALESCE(NULLIF(TRIM(${EDL_temp.Bar_Code_Item}), ''), NULLIF(TRIM(${prodcode.ean_product_code}), ''), '-')`,
         productName: sql<string>`COALESCE(NULLIF(TRIM(${prodcode.product_description}), ''), NULLIF(TRIM(${EDL_temp.Product_Name}), ''), 'ไม่พบชื่อสินค้า')`,
         orderQty: EDL_temp.Qty_Order,
         unitPrice: EDL_temp.Price_Unit,
@@ -268,13 +269,25 @@ export async function getEDLByHeadersAction(items: { customerPo: string; fileNam
         discount2: EDL_temp.Discount_2,
         discount3: EDL_temp.Discount_3,
         netAmount: EDL_temp.Net_Amount,
-        isProductValid: sql<boolean>`${prodcode.ean_product_code} IS NOT NULL`,
+        // สินค้าถูกต้องถ้าเจอบาร์โค้ดใน Master Data หรือในตารางสินค้าเปลี่ยนรหัส
+        isProductValid: sql<boolean>`(${prodcode.id} IS NOT NULL OR ${Edit_Detail.id} IS NOT NULL)`,
         isAutoCorrected: sql<boolean>`false`,
+        // ข้อมูลการเปลี่ยนรหัส (Mapping จาก Edit_Detail โดยใช้บาร์โค้ดเป็นตัวเชื่อม)
+        changeItem: Edit_Detail.Internal_Code2,
+        changeProdName: Edit_Detail.Prod_Name2,
+        checkBarInt: Edit_Detail.BarCode,
+        checkNameOldProd: EDL_temp.Product_Name,
       })
       .from(EDL_temp)
-      // Join กับ Master Data (prodcode)
+      // เปลี่ยนมา Join ด้วย Barcode ตามเงื่อนไข
       .leftJoin(prodcode, sql`TRIM(${EDL_temp.Bar_Code_Item}) = TRIM(${prodcode.ean_product_code})`)
       .leftJoin(customer, sql`TRIM(${EDL_temp.Customer_Num}) = TRIM(${customer.customer_code})`)
+      // Join กับตารางสินค้าที่ต้องเปลี่ยนรหัส (Edit_Detail) 
+      // เพิ่มความยืดหยุ่น: Match ด้วย Barcode หรือ Internal_Code1 และเช็คลูกค้าให้กว้างขึ้น
+      .leftJoin(Edit_Detail, and(
+        sql`(TRIM(${EDL_temp.Bar_Code_Item}) = TRIM(${Edit_Detail.BarCode}) OR LTRIM(TRIM(${EDL_temp.Item_Num}), '0') = LTRIM(TRIM(${Edit_Detail.Internal_Code1}), '0'))`,
+        sql`(${Edit_Detail.Cus_Code} IS NULL OR TRIM(${Edit_Detail.Cus_Code}) = TRIM(${EDL_temp.Customer_Num}) OR TRIM(${Edit_Detail.Cus_Code}) = TRIM(${customer.short_name}))`
+      ))
       .where(and(
         eq(EDL_temp.Customer_PO, item.customerPo),
         eq(EDL_temp.File_Name, item.fileName)
@@ -318,12 +331,18 @@ export async function getEDHData() {
       )`,
       isCustomerValid: sql<boolean>`${customer.customer_code} IS NOT NULL`,
       isAutoCorrected: sql<boolean>`false`,
-      hasDetailError: sql<boolean>`EXISTS (
+      // ปรับปรุง logic: ต้องมีรายละเอียด (Details) และรายละเอียดทุกรายการต้องมีข้อมูลบาร์โค้ดใน prodcode หรือ Edit_Detail
+      hasDetailError: sql<boolean>`NOT EXISTS (
         SELECT 1 FROM "EDL_tmp" edl
-        LEFT JOIN "prodcode" p ON TRIM(edl."Bar_Code_Item") = TRIM(p."ean_product_code")
         WHERE edl."Customer_PO" = ${EDH_temp.Customer_PO} 
         AND edl."File_Name" = ${EDH_temp.File_Name}
-        AND p."ean_product_code" IS NULL
+      ) OR EXISTS (
+        SELECT 1 FROM "EDL_tmp" edl
+        LEFT JOIN "prodcode" p ON TRIM(edl."Bar_Code_Item") = TRIM(p."ean_product_code")
+        LEFT JOIN "Edit_Detail" e ON TRIM(edl."Bar_Code_Item") = TRIM(e."Bar_code")
+        WHERE edl."Customer_PO" = ${EDH_temp.Customer_PO} 
+        AND edl."File_Name" = ${EDH_temp.File_Name}
+        AND p."id" IS NULL AND e."id" IS NULL
       )`,
       createdAt: EDH_temp.Created_At,
       createdAtDisplay: sql<string>`TO_CHAR(${EDH_temp.Created_At}, 'DD/MM/YYYY HH24:MI:SS')`,

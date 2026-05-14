@@ -106,7 +106,7 @@ export async function upsertToAS400(headerId: number) {
       return { success: false, message: "ไม่พบข้อมูลใบสั่งซื้อในตารางพักข้อมูล" };
     }
 
-    // 2. ค้นหา Detail พร้อม Join กับตาราง Master Data และตารางปรับเปลี่ยน (Edit_Detail)
+    // 2. ค้นหา Detail พร้อม Join กับตาราง Master Data และตารางปรับเปลี่ยน (Edit_Detail) โดยใช้ Barcode เป็นหลัก
     const detailsWithMaster = await db.select({
       id: EDL_temp.id,
       D_Type: EDL_temp.D_Type,
@@ -134,19 +134,21 @@ export async function upsertToAS400(headerId: number) {
       masterInternalCode: prodcode.id,
       masterEanCode: prodcode.ean_product_code,
       masterDescription: prodcode.product_description,
-      // ข้อมูลจากการปรับเปลี่ยน (Edit_Detail) - กรณีตัดแบ่งแพ็ก
+      // ข้อมูลจากการปรับเปลี่ยน (Edit_Detail) - Join ด้วยบาร์โค้ด
       editNewBarcode: Edit_Detail.BarCode,
       editNewInternalCode: Edit_Detail.Internal_Code2,
       editNewName: Edit_Detail.Prod_Name2,
       editOldName: Edit_Detail.Prod_Name1,
     })
     .from(EDL_temp)
-    // Join Master Data (ใช้รหัสสินค้า หรือ บาร์โค้ด เป็นตัวเชื่อม)
+    // Join Master Data ด้วย Barcode
     .leftJoin(prodcode, sql`TRIM(${EDL_temp.Bar_Code_Item}) = TRIM(${prodcode.ean_product_code})`)
-    // Join การปรับเปลี่ยนพิเศษ (กรณีตัดแบ่งแพ็ก) - รองรับทั้ง Barcode หรือ Internal_Code1
+    // Join ข้อมูลลูกค้า เพื่อเอาไว้เช็ค short_name ในตาราง Edit_Detail
+    .leftJoin(customer, sql`TRIM(${EDL_temp.Customer_Num}) = TRIM(${customer.customer_code})`)
+    // Join ตารางปรับเปลี่ยน (กรณีตัดแบ่งแพ็ก) ด้วย Barcode หรือ Internal_Code1 และเช็คลูกค้าให้กว้างขึ้น
     .leftJoin(Edit_Detail, and(
-      sql`(TRIM(${EDL_temp.Bar_Code_Item}) = TRIM(${Edit_Detail.BarCode}) OR TRIM(${EDL_temp.Item_Num}) = TRIM(${Edit_Detail.Internal_Code1}))`,
-      sql`(${Edit_Detail.Cus_Code} IS NULL OR TRIM(${Edit_Detail.Cus_Code}) = TRIM(${header.Customer_Num}))`
+      sql`(TRIM(${EDL_temp.Bar_Code_Item}) = TRIM(${Edit_Detail.BarCode}) OR LTRIM(TRIM(${EDL_temp.Item_Num}), '0') = LTRIM(TRIM(${Edit_Detail.Internal_Code1}), '0'))`,
+      sql`(${Edit_Detail.Cus_Code} IS NULL OR TRIM(${Edit_Detail.Cus_Code}) = TRIM(${EDL_temp.Customer_Num}) OR TRIM(${Edit_Detail.Cus_Code}) = TRIM(${customer.short_name}))`
     ))
     .where(and(
       eq(EDL_temp.Customer_PO, header.Customer_PO ?? ""),
@@ -188,7 +190,7 @@ export async function upsertToAS400(headerId: number) {
         Line_Num: d.Line_Num || (index + 1).toString(), 
         Product_Name: d.masterDescription || d.Product_Name, 
         Pack_Size: "CN", 
-        Bar_Code_Item: d.masterEanCode || d.Bar_Code_Item,
+        Bar_Code_Item: d.Bar_Code_Item || d.masterEanCode, // ยึดบาร์โค้ดที่ตัดมาได้จาก parser เป็นหลัก
         Buyer_Prod_Code: d.Customer_Num || "-", 
         Vendor_Prod_Code: d.Item_Num, 
         Qty_Order: d.Qty_Order,
@@ -200,9 +202,9 @@ export async function upsertToAS400(headerId: number) {
         Net_Amount: d.Net_Amount,
         File_Name: d.File_Name || header.File_Name,
         Check_Bar_Int: d.editNewBarcode || "",       
-        Change_Item: d.editNewInternalCode || "",    
-        Change_Prod_Name: d.editNewName || "",       
-        Check_Name_Old_Prod: "",                      
+        Change_Item: d.editNewInternalCode || "",    // รหัสใหม่ที่ได้จากการคีย์บันทึก
+        Change_Prod_Name: d.editNewName || "",       // ชื่อใหม่ของสินค้า
+        Check_Name_Old_Prod: d.Product_Name || "",   // ชื่อเดิมสินค้าจากไฟล์ที่ import
       }));
       await tx.insert(TEDL).values(historyDetails);
 
@@ -220,7 +222,7 @@ export async function upsertToAS400(headerId: number) {
         Line_Num: d.Line_Num || (index + 1).toString(), 
         Product_Name: d.masterDescription || d.Product_Name, 
         Pack_Size: "CN", 
-        Bar_Code_Item: d.masterEanCode || d.Bar_Code_Item,
+        Bar_Code_Item: d.Bar_Code_Item || d.masterEanCode,
         Buyer_Prod_Code: d.Customer_Num || "-", 
         Vendor_Prod_Code: d.Item_Num, 
         Qty_Order: d.Qty_Order,
@@ -232,9 +234,9 @@ export async function upsertToAS400(headerId: number) {
         Net_Amount: d.Net_Amount,
         File_Name: d.File_Name || header.File_Name,
         Check_Bar_Int: d.editNewBarcode || "",       
-        Change_Item: d.editNewInternalCode || "",    
-        Change_Prod_Name: d.editNewName || "",       
-        Check_Name_Old_Prod: "", 
+        Change_Item: d.editNewInternalCode || "",    // รหัสใหม่
+        Change_Prod_Name: d.editNewName || "",       // ชื่อใหม่
+        Check_Name_Old_Prod: d.Product_Name || "",   // ชื่อเดิม
       }));
       await tx.insert(TEDL_history).values(recordDetails); // หมายเหตุ: แม้ชื่อตัวแปรจะเป็น TEDL_history แต่ใน schema.ts มันชี้ไปที่ EDL_record ครับ
 

@@ -33,7 +33,7 @@ export function AddAddressForm({ onSuccess, initialValues }: AddAddressFormProps
       try {
         let result;
         if (isEdit) {
-          // 🛡️ ใช้รหัสเดิมจากตอนโหลดข้อมูล (ไม่ใช่จากช่อง input) เพื่อความแม่นยำในการหา row
+          // ใช้รหัสเดิมจากตอนโหลดข้อมูล (ไม่ใช่จากช่อง input) เพื่อความแม่นยำในการหา row
           const originalCode = initialValues?.customer_no ?? data.customer_no;
           result = await updateAddressAction(originalCode, data);
         } else {
@@ -53,9 +53,9 @@ export function AddAddressForm({ onSuccess, initialValues }: AddAddressFormProps
     });
   };
 
-  // 🛡️ ใช้ 'keyof AddressFormData' เพื่อให้ id รับได้เฉพาะชื่อฟิลด์ใน Schema เท่านั้น!
+  //  ใช้ 'keyof AddressFormData' เพื่อให้ id รับได้เฉพาะชื่อฟิลด์ใน Schema เท่านั้น!
   const renderField = (id: keyof AddressFormData, label: string, maxLength: number) => {
-    // 🛡️ watch(id) ตอนนี้จะรู้แล้วว่า return ค่าเป็น string หรือ null
+    //  watch(id) ตอนนี้จะรู้แล้วว่า return ค่าเป็น string หรือ null
     const value = watch(id) || ""; 
     
     return (
@@ -70,7 +70,7 @@ export function AddAddressForm({ onSuccess, initialValues }: AddAddressFormProps
           disabled={isPending || (isEdit && id === "customer_no")} // ป้องกันการแก้ PK ตอน Edit
           className={`w-full bg-ui-bg border border-ui-border p-2 rounded-lg text-sm text-ui-text focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 outline-none transition-all ${isPending ? 'opacity-50 cursor-wait' : ''}`}
         />
-        {/* 🛡️ แสดง error message ถ้ามี (เพิ่มเผื่อไว้ให้ฮะ) */}
+        {/*  แสดง error message ถ้ามี (เพิ่มเผื่อไว้ให้ฮะ) */}
         {errors[id] && (
           <p className="text-status-error text-[10px] mt-1">{errors[id]?.message}</p>
         )}

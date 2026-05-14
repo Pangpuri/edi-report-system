@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { getEditDetailsAction, saveEditDetailAction, deleteEditDetailAction } from "@/app/actions/master/change-product-actions";
 import { useToast } from "@/components/ToastProvider";
+import { useColumnResizer } from "@/hooks/useColumnResizer";
 
 interface ProductChangeDetail {
   id?: number;
@@ -41,6 +42,7 @@ export function ChangeProductDetail() {
   const [data, setData] = useState<ProductChangeDetail[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isPending, startTransition] = useTransition();
+  const { columnWidths, handleResize } = useColumnResizer();
 
   const loadData = async () => {
     setIsLoading(true);
@@ -134,12 +136,30 @@ export function ChangeProductDetail() {
             <table className="w-full text-center border-collapse table-fixed">
               <thead className="sticky top-0 bg-ui-bg border-b border-ui-border z-10 text-xs font-black uppercase text-ui-muted tracking-widest">
                 <tr>
-                  <th className="p-4 w-36">Barcode</th>
-                  <th className="p-4 w-28">Internal1</th>
-                  <th className="p-4 w-28">ลูกค้า</th>
-                  <th className="p-4">ชื่อเดิมสินค้า</th>
-                  <th className="p-4 w-28 text-emerald-600">Internal2</th>
-                  <th className="p-4 text-emerald-600">ชื่อใหม่สินค้า</th>
+                  <th style={{ width: columnWidths['Barcode'] || 144 }} className="p-4 relative group">
+                    Barcode
+                    <div onMouseDown={(e) => handleResize('Barcode', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
+                  </th>
+                  <th style={{ width: columnWidths['Internal1'] || 112 }} className="p-4 relative group">
+                    Internal1
+                    <div onMouseDown={(e) => handleResize('Internal1', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
+                  </th>
+                  <th style={{ width: columnWidths['CusCode'] || 112 }} className="p-4 relative group">
+                    ลูกค้า
+                    <div onMouseDown={(e) => handleResize('CusCode', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
+                  </th>
+                  <th style={{ width: columnWidths['ProdName1'] || 200 }} className="p-4 relative group">
+                    ชื่อเดิมสินค้า
+                    <div onMouseDown={(e) => handleResize('ProdName1', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
+                  </th>
+                  <th style={{ width: columnWidths['Internal2'] || 112 }} className="p-4 text-emerald-600 relative group">
+                    Internal2
+                    <div onMouseDown={(e) => handleResize('Internal2', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
+                  </th>
+                  <th style={{ width: columnWidths['ProdName2'] || 200 }} className="p-4 text-emerald-600 relative group">
+                    ชื่อใหม่สินค้า
+                    <div onMouseDown={(e) => handleResize('ProdName2', e)} className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ui-border/50 text-sm font-medium">
@@ -189,13 +209,13 @@ export function ChangeProductDetail() {
             {/* Section 1: ข้อมูลเดิม */}
             <div className="space-y-2">
               <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1 text-[11px] font-black text-amber-600 uppercase tracking-tighter border-l-2 border-amber-500 pl-2">
-                  <AlertCircle size={12} /> ข้อมูลเดิม
+                <div className="flex items-center gap-1 text-[14px] font-black text-amber-600 uppercase tracking-tighter border-l-2 border-amber-500 pl-2">
+                  <AlertCircle size={12} /> ใส่ข้อมูลบาร์โค้ด และรหัสสินค้า
                 </div>
                 {selectedItem.id && (
                   <button 
                     onClick={() => setSelectedItem(INITIAL_STATE)}
-                    className="text-[9px] font-medium text-brand-primary flex items-center gap-1 hover:underline uppercase"
+                    className="text-[14px] font-medium text-brand-primary flex items-center gap-1 hover:underline uppercase"
                   >
                     <Plus size={9} /> เพิ่มใหม่
                   </button>
@@ -204,7 +224,7 @@ export function ChangeProductDetail() {
               
               <div className="space-y-1.5">
                 <div>
-                  <label className="text-[10px] font-black text-ui-muted uppercase block mb-0.5">Barcode</label>
+                  <label className="text-[12px] font-black text-ui-muted uppercase block mb-0.5">Barcode</label>
                   <input 
                     type="text" 
                     value={selectedItem.BarCode || ""} 
@@ -214,7 +234,7 @@ export function ChangeProductDetail() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-ui-muted uppercase block mb-0.5">Code 1</label>
+                  <label className="text-[12px] font-black text-ui-muted uppercase block mb-0.5">Code 1</label>
                   <input 
                     type="text" 
                     value={selectedItem.Internal_Code1 || ""} 
@@ -224,7 +244,7 @@ export function ChangeProductDetail() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-ui-muted uppercase block mb-0.5">ชื่อสินค้า</label>
+                  <label className="text-[12px] font-black text-ui-muted uppercase block mb-0.5">ชื่อสินค้า</label>
                   <input 
                     type="text" 
                     value={selectedItem.Prod_Name1 || ""} 
@@ -238,13 +258,13 @@ export function ChangeProductDetail() {
 
             {/* Section 2: ข้อมูลใหม่ */}
             <div className="space-y-1.5 border-t border-ui-border pt-2">
-              <div className="flex items-center gap-1 text-[11px] font-black text-emerald-500 uppercase tracking-tighter border-l-2 border-emerald-500 pl-2">
+              <div className="flex items-center gap-1 text-[14px] font-black text-emerald-500 uppercase tracking-tighter border-l-2 border-emerald-500 pl-2">
                 <CheckCircle2 size={12} /> ข้อมูลใหม่
               </div>
               
               <div className="space-y-1.5">
                 <div>
-                  <label className="text-[10px] font-black text-ui-text uppercase block mb-0.5">Code 2</label>
+                  <label className="text-[12px] font-black text-ui-text uppercase block mb-0.5">Code 2</label>
                   <input 
                     type="text" 
                     value={selectedItem.Internal_Code2 || ""} 
@@ -254,7 +274,7 @@ export function ChangeProductDetail() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-ui-text uppercase block mb-0.5">ชื่อสินค้า</label>
+                  <label className="text-[12px] font-black text-ui-text uppercase block mb-0.5">ชื่อสินค้า</label>
                   <input 
                     type="text" 
                     value={selectedItem.Prod_Name2 || ""} 
@@ -264,7 +284,7 @@ export function ChangeProductDetail() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-ui-text uppercase block mb-0.5">ลูกค้า</label>
+                  <label className="text-[12px] font-black text-ui-text uppercase block mb-0.5">ลูกค้า</label>
                   <input 
                     type="text" 
                     value={selectedItem.Cus_Code || ""} 

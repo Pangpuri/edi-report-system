@@ -36,6 +36,13 @@
       "when": 1778055483790,
       "tag": "0004_cultured_cyclops",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778662266131,
+      "tag": "0005_add_product_id_and_status_to_edit_unit_makro",
+      "breakpoints": true
     }
   ]
 }

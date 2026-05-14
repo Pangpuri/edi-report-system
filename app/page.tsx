@@ -17,10 +17,10 @@ function DashboardContent() {
   const router = useRouter();
   const { data: session, isPending: isAuthLoading } = authClient.useSession();
   
-  // 🌸 State สำหรับจัดการ Fallback กรณีระบบ Auth ค้าง (เช่น WebSocket ผ่าน IP มีปัญหา)
+  // State สำหรับจัดการ Fallback กรณีระบบ Auth ค้าง (เช่น WebSocket ผ่าน IP มีปัญหา)
   const [isTimeout, setIsTimeout] = useState(false);
 
-  // 🛡️ Effect สำหรับนับถอยหลัง 3 วินาที
+  //  Effect สำหรับนับถอยหลัง 3 วินาที
   useEffect(() => {
     if (isAuthLoading) {
       const timer = setTimeout(() => {
@@ -37,16 +37,16 @@ function DashboardContent() {
     viewTarget, setViewTarget, handleDelete
   } = useDashboardActions();
 
-  // 🌍 เปิดเผย setActiveTab ให้กับระบบภายนอก (สำหรับเด้งหน้าจออัตโนมัติ)
+  //เปิดเผย setActiveTab ให้กับระบบภายนอก (สำหรับเด้งหน้าจออัตโนมัติ)
   useEffect(() => {
     if (typeof window !== "undefined") {
-      (window as any).setDashboardActiveTab = (tab: any) => {
-        setActiveTab(tab);
+      (window as unknown as Record<string, (tab: unknown) => void>).setDashboardActiveTab = (tab: unknown) => {
+        setActiveTab(tab as Parameters<typeof setActiveTab>[0]);
       };
     }
     return () => {
       if (typeof window !== "undefined") {
-        delete (window as any).setDashboardActiveTab;
+        delete (window as unknown as Record<string, (tab: unknown) => void>).setDashboardActiveTab;
       }
     };
   }, [setActiveTab]);
@@ -61,6 +61,13 @@ function DashboardContent() {
     ["customer", "address", "product"].includes(activeTab), 
     [activeTab]
   );
+
+  //  รีเซ็ต ViewMode กลับเป็น 'list' อัตโนมัติเมื่อสลับไป Tab ที่ไม่มีฟอร์ม Add
+  useEffect(() => {
+    if (viewMode === "add" && !isMasterDataTab) {
+      setViewMode("list");
+    }
+  }, [activeTab, isMasterDataTab, viewMode, setViewMode]);
 
   //  ตัดสินใจว่าจะโชว์เนื้อหาหรือยัง
   const shouldShowContent = !isAuthLoading || isTimeout;
@@ -115,6 +122,7 @@ function DashboardContent() {
           viewMode={viewMode}
           setViewMode={setViewMode}
           isMasterDataTab={isMasterDataTab}
+          refresh={masterData.refresh}
         />
 
         <DashboardSearch 

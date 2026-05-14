@@ -15,50 +15,16 @@ import {
 } from "lucide-react";
 
 import { useAS400History } from "@/app/actions/edi/history-actions";
+import { useColumnResizer } from "@/hooks/useColumnResizer";
 
 export function AS400History() {
-  // --- ชุดตัวแปร (States) สำหรับปรับขนาดคอลัมน์ ---
-  const [headerWidths, setHeaderWidths] = useState<Record<string, number>>({});
-  const [detailWidths, setDetailWidths] = useState<Record<string, number>>({});
+  const { columnWidths: headerWidths, handleResize: handleHeaderResize } = useColumnResizer();
+  const { columnWidths: detailWidths, handleResize: handleDetailResize } = useColumnResizer();
 
-  // ฟังก์ชันลอจิกตอนลากปรับขนาดคอลัมน์
   const handleResize = (table: 'header' | 'detail', column: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const startX = e.pageX;
-    const startWidth = table === 'header' 
-      ? (headerWidths[column] || 150) 
-      : (detailWidths[column] || 150);
-
-    // ใช้ overlay โปร่งใสเต็มหน้าจอขณะลาก เพื่อให้การลื่นไหลไม่หลุดแม้เมาส์จะเลื่อนเร็ว
-    const overlay = document.createElement('div');
-    overlay.style.position = 'fixed';
-    overlay.style.inset = '0';
-    overlay.style.zIndex = '9999';
-    overlay.style.cursor = 'col-resize';
-    document.body.appendChild(overlay);
-
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.pageX - startX;
-      const newWidth = Math.max(60, startWidth + deltaX);
-      
-      if (table === 'header') {
-        setHeaderWidths(prev => ({ ...prev, [column]: newWidth }));
-      } else {
-        setDetailWidths(prev => ({ ...prev, [column]: newWidth }));
-      }
-    };
-
-    const onMouseUp = () => {
-      document.body.removeChild(overlay);
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    };
-
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  };
+    if (table === 'header') handleHeaderResize(column, e);
+    else handleDetailResize(column, e);
+  }
 
   const {
     selectedHeaders,
@@ -114,11 +80,14 @@ export function AS400History() {
       content += `\n==================================================\n\n`;
     });
 
-    const blob = new Blob([content], { type: 'text/plain' });
+    // หมายเหตุ: ปลายทาง AS400 บางเครื่องอาจต้องการ encoding เฉพาะเจาะจง 
+    // การระบุ charset=utf-8 จะช่วยให้เปิดดูใน Notepad/VS Code ได้ถูกต้อง
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `as400_export_${new Date().getTime()}.txt`;
+    // เปลี่ยนชื่อไฟล์ให้สื่อว่าเป็นไฟล์สำหรับ Preview/Review ข้อมูล ไม่ใช่ไฟล์โอนเข้าจริง
+    link.download = `EDI_AS400_REVIEW_${new Date().toISOString().split('T')[0]}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -127,7 +96,7 @@ export function AS400History() {
     // อัปเดตสถานะในฐานข้อมูลสำหรับรายการที่ยังไม่นำเข้า
     for (const h of selectedHeaders) {
       if (!h.as400Status) {
-        await handleToggleStatus(h.id, false);
+        await handleToggleStatus(h.id, true); // Assuming export means it's now considered processed for AS400
       }
     }
   };

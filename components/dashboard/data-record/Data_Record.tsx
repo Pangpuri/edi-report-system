@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { getEDHRecordData, getEDLRecordByHeadersAction, deleteRecordAction } from "@/app/actions/edi/record-actions";
 import { useToast } from "@/components/ToastProvider";
+import { useColumnResizer } from "@/hooks/useColumnResizer";
 
 interface EDHRecord {
   id: number;
@@ -60,9 +61,9 @@ export function DataRecord() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  const [headerWidths, setHeaderWidths] = useState<Record<string, number>>({});
-  const [detailWidths, setDetailWidths] = useState<Record<string, number>>({});
+  
+  const { columnWidths: headerWidths, handleResize: handleHeaderResize } = useColumnResizer();
+  const { columnWidths: detailWidths, handleResize: handleDetailResize } = useColumnResizer();
 
   // --- Handlers ---
   const loadData = useCallback(async () => {
@@ -96,6 +97,7 @@ export function DataRecord() {
         setDetailData(details as EDLRecord[]);
       } catch (error) {
         console.error("Fetch Detail Error:", error);
+        showToast("ไม่สามารถโหลดรายละเอียดข้อมูลได้", "error");
       } finally {
         setIsDetailLoading(false);
       }
@@ -143,26 +145,9 @@ export function DataRecord() {
     }
   };
 
-  const handleResize = (table: 'header' | 'detail', column: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const startX = e.pageX;
-    const startWidth = table === 'header' ? (headerWidths[column] || 150) : (detailWidths[column] || 150);
-    const overlay = document.createElement('div');
-    overlay.style.cssText = "position:fixed;inset:0;z-index:9999;cursor:col-resize;";
-    document.body.appendChild(overlay);
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      const newWidth = Math.max(60, startWidth + (moveEvent.pageX - startX));
-      if (table === 'header') setHeaderWidths(prev => ({ ...prev, [column]: newWidth }));
-      else setDetailWidths(prev => ({ ...prev, [column]: newWidth }));
-    };
-    const onMouseUp = () => {
-      document.body.removeChild(overlay);
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    };
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
+  const handleResizeProxy = (table: 'header' | 'detail', column: string, e: React.MouseEvent) => {
+    if (table === 'header') handleHeaderResize(column, e);
+    else handleDetailResize(column, e);
   };
 
   const filteredHeaders = useMemo(() => {
