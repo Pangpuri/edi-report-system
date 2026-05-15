@@ -185,8 +185,7 @@ export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (ta
       const uploadRes = await uploadAS400FilesAction(formData);
       
       if (uploadRes.success) {
-        // เมื่อ Upload สำเร็จ ให้ประมวลผลไฟล์ทันทีโดยไม่ต้องผ่าน Staging
-        await clearTempTablesAction();
+// Accumulate items (don't clear)
         let successCount = 0;
         const fileNames = validFiles.map(f => f.name);
         
@@ -198,14 +197,7 @@ export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (ta
         await initData();
         showToast(`นำเข้าและประมวลผลสำเร็จ ${successCount} จาก ${fileNames.length} ไฟล์`, "success");
         
-        // อัปเดตข้อมูลตารางเตรียมนำเข้า
-        const updatedHData = await getEDHData() as unknown as EDHData[];
-        setHeaderData(updatedHData);
-        const newlyImported = updatedHData.filter(h => fileNames.includes(h.fileName ?? ""));
-        setSelectedHeaders(newlyImported);
-        if (newlyImported.length > 0) {
-          fetchMultipleDetails(newlyImported);
-        }
+        // Auto-selection removed
         
         setActiveTab("data_view"); 
       } else {
@@ -473,7 +465,7 @@ export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (ta
           </div>
           <div>
             <h2 className="text-lg font-black text-brand-primary uppercase tracking-tight">ระบบนำเข้า และจัดการไฟล์ EDI</h2>
-            <p className="text-[8px] text-ui-muted font-bold uppercase tracking-widest">ISP Filter</p>
+            <p className="text-[14px] text-ui-muted font-medium uppercase tracking-widest">จัดการไฟล์ ก่อนนำเข้าระบบ</p>
           </div>
         </div>
 

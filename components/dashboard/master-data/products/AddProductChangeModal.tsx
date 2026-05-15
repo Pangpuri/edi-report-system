@@ -96,7 +96,7 @@ export function AddProductChangeModal({ isOpen, onClose, onSuccess }: AddProduct
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[12px] font-bold text-ui-text ml-1">รหัสสินค้า</label>
+                    <label className="text-[12px] font-bold text-ui-text ml-1">รหัสสินค้าเดิม</label>
                     <input
                       required
                       value={formData.Internal_Code1}
@@ -111,7 +111,7 @@ export function AddProductChangeModal({ isOpen, onClose, onSuccess }: AddProduct
                     <input
                       value={formData.Prod_Name1}
                       onChange={e => setFormData({ ...formData, Prod_Name1: e.target.value })}
-                      placeholder="ระบุชื่อสินค้าเดิม (Optional)"
+                      placeholder="ระบุชื่อสินค้าเดิม"
                       className="w-full px-4 py-2.5 bg-ui-card border border-ui-border rounded-xl text-sm focus:outline-none focus:border-brand-primary transition-all"
                     />
                   </div>
@@ -143,11 +143,11 @@ export function AddProductChangeModal({ isOpen, onClose, onSuccess }: AddProduct
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[12px] font-bold text-ui-text ml-1">รหัสลูกค้า (ผูกเฉพาะราย)</label>
+                    <label className="text-[12px] font-bold text-ui-text ml-1">ลูกค้า</label>
                     <input
                       value={formData.Cus_Code}
                       onChange={e => setFormData({ ...formData, Cus_Code: e.target.value })}
-                      placeholder="เช่น CJ, BigC (ปล่อยว่างถ้าใช้ทุกราย)"
+                      placeholder="เช่น CJ , BigC , Lotus"
                       className="w-full px-4 py-2.5 bg-ui-card border border-ui-border rounded-xl text-sm focus:outline-none focus:border-brand-primary transition-all"
                     />
                   </div>

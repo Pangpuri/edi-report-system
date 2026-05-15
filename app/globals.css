@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -33,7 +33,7 @@
 }
 
 :root {
-  /* ☀️ Sophisticated Light Mode (Slate & Navy) */
+  /* Sophisticated Light Mode (Slate & Navy) */
   --bg-main: 210 40% 98%;      /* Slate-50 (ขาวนวล) */
   --bg-subtle: 210 40% 96%;    /* Slate-100 (เทาจาง) */
   --bg-card: 0 0% 100%;        /* White */
@@ -85,7 +85,7 @@
 }
 
 [class~="dark"] {
-  /* 🌙 Sophisticated Dark Mode (Deep Navy Slate) */
+  /*  Sophisticated Dark Mode (Deep Navy Slate) */
   --bg-main: 222 47% 4%;       /* Slate-950 (Darkest Navy) */
   --bg-subtle: 222 47% 7%;     /* Slate-900 */
   --bg-card: 222 47% 11%;      /* Slate-800 (Card background) */
@@ -136,6 +136,9 @@
   background: hsl(var(--brand-primary));
   border: 2px solid transparent;
   background-clip: content-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 @theme inline {

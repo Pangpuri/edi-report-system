@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { MasterData } from "@/app/edi";
 import { getCustomerMaster } from "@/app/actions/master/customer-actions";
 import { getProductMaster } from "@/app/actions/master/product-actions";
@@ -12,16 +12,30 @@ interface ActionResult {
 
 /**
  * Optimized Hook for Master Data Management
- * Fixed: Infinite Loop and Laggy Search
+ * Fixed: Persist Search Query per Tab
  */
 export function useMasterData(activeTab: string) {
   const [data, setData] = useState<MasterData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   
-  //  Search States
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  //  Search States (Per-tab storage)
+  const [searchQueries, setSearchQueries] = useState<Record<string, string>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("dashboard_search_queries");
+      try {
+        return saved ? JSON.parse(saved) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+    return {};
+  });
+
+  // Current search query for the active tab
+  const searchQuery = useMemo(() => searchQueries[activeTab] || "", [searchQueries, activeTab]);
+  
+  const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
   
   //  Pagination State (Local only for maximum speed)
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,7 +44,26 @@ export function useMasterData(activeTab: string) {
   //  Reference to track tab changes
   const lastTab = useRef(activeTab);
 
-  //  Debounce logic: Delay filtering to keep typing smooth
+  // Persistence logic
+  const updateSearchQuery = (query: string) => {
+    setSearchQueries(prev => {
+      const next = { ...prev, [activeTab]: query };
+      localStorage.setItem("dashboard_search_queries", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // Synchronize debounced query when switching tabs (immediately)
+  useEffect(() => {
+    if (lastTab.current !== activeTab) {
+      const savedQuery = searchQueries[activeTab] || "";
+      setDebouncedQuery(savedQuery);
+      setCurrentPage(1);
+      lastTab.current = activeTab;
+    }
+  }, [activeTab, searchQueries]);
+
+  //  Debounce logic for the current query
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(searchQuery);
@@ -68,16 +101,10 @@ export function useMasterData(activeTab: string) {
     }
   }, [activeTab]);
 
-  //  Initial Load & Tab Change handling
+  //  Initial Load
   useEffect(() => {
     loadData();
-    if (lastTab.current !== activeTab) {
-      setSearchQuery("");
-      setDebouncedQuery("");
-      setCurrentPage(1);
-      lastTab.current = activeTab;
-    }
-  }, [activeTab, loadData]);
+  }, [loadData]);
 
   //  Optimized Search Filter
   const allFilteredData = useMemo(() => {
@@ -117,13 +144,13 @@ export function useMasterData(activeTab: string) {
     filteredData: paginatedData,
     currentPage,
     totalPages,
-    setCurrentPage, // keep it for compatibility if needed elsewhere
+    setCurrentPage, 
     goToNextPage,
     goToPreviousPage,
     loading,
     error,
     searchQuery,
-    setSearchQuery,
+    setSearchQuery: updateSearchQuery,
     refresh: (isSilent = true) => loadData(isSilent), 
   };
 }

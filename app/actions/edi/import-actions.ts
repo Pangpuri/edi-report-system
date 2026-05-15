@@ -325,9 +325,8 @@ export async function getEDHData() {
       totalAmount: EDH_temp.Total_Amount,
       fileName: EDH_temp.File_Name,
       as400Status: sql<boolean>`EXISTS (
-        SELECT 1 FROM "EDH_history" h 
-        WHERE TRIM(h."Customer_PO") = TRIM(${EDH_temp.Customer_PO}) 
-        AND TRIM(h."File_Name") = TRIM(${EDH_temp.File_Name})
+        SELECT 1 FROM "EDH_record" h 
+        WHERE TRIM(h."Customer_PO") = TRIM(${EDH_temp.Customer_PO})
       )`,
       isCustomerValid: sql<boolean>`${customer.customer_code} IS NOT NULL`,
       isAutoCorrected: sql<boolean>`false`,
