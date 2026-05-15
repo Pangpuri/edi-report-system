@@ -417,7 +417,7 @@ export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (ta
     if (successCount > 0) {
       showToast(`โอนข้อมูลสำเร็จ ${successCount} จาก ${selectedHeaders.length} รายการ (ข้อมูลถูกกระจายไปที่ History และ Record แล้ว)`, "success");
       
-      // 🚀 เด้งไปที่หน้า "รายการข้อมูลก่อนพิมพ์" ทันทีที่โอนสำเร็จ
+      // เด้งไปที่หน้า "รายการข้อมูลก่อนพิมพ์" ทันทีที่โอนสำเร็จ
       if (setParentTab) setParentTab("processed-data");
     }
     
@@ -472,7 +472,7 @@ export function ImportAS400({ setActiveTab: setParentTab }: { setActiveTab?: (ta
             <Globe size={20} />
           </div>
           <div>
-            <h2 className="text-sm font-black text-brand-primary uppercase tracking-tight">ระบบนำเข้า และจัดการไฟล์ EDI</h2>
+            <h2 className="text-lg font-black text-brand-primary uppercase tracking-tight">ระบบนำเข้า และจัดการไฟล์ EDI</h2>
             <p className="text-[8px] text-ui-muted font-bold uppercase tracking-widest">ISP Filter</p>
           </div>
         </div>

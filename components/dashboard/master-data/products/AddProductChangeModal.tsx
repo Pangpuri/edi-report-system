@@ -82,10 +82,10 @@ export function AddProductChangeModal({ isOpen, onClose, onSuccess }: AddProduct
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Section: Original Info */}
                 <div className="space-y-4 p-4 bg-ui-bg/50 rounded-2xl border border-ui-border">
-                  <h4 className="text-[10px] font-black text-ui-muted uppercase tracking-[0.2em] mb-2">ข้อมูลต้นฉบับ (จากไฟล์)</h4>
+                  <h4 className="text-[14px] font-black text-ui-muted uppercase tracking-[0.2em] mb-2">กรุณากรอกข้อมูล</h4>
                   
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-ui-text ml-1">บาร์โค้ด *</label>
+                    <label className="text-[12px] font-bold text-ui-text ml-1">บาร์โค้ด *</label>
                     <input
                       required
                       value={formData.BarCode}
@@ -96,7 +96,7 @@ export function AddProductChangeModal({ isOpen, onClose, onSuccess }: AddProduct
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-ui-text ml-1">รหัสสินค้า</label>
+                    <label className="text-[12px] font-bold text-ui-text ml-1">รหัสสินค้า</label>
                     <input
                       required
                       value={formData.Internal_Code1}
@@ -107,7 +107,7 @@ export function AddProductChangeModal({ isOpen, onClose, onSuccess }: AddProduct
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-ui-text ml-1">ชื่อสินค้าเดิม</label>
+                    <label className="text-[12px] font-bold text-ui-text ml-1">ชื่อสินค้าเดิม</label>
                     <input
                       value={formData.Prod_Name1}
                       onChange={e => setFormData({ ...formData, Prod_Name1: e.target.value })}
@@ -119,10 +119,10 @@ export function AddProductChangeModal({ isOpen, onClose, onSuccess }: AddProduct
 
                 {/* Section: New Info */}
                 <div className="space-y-4 p-4 bg-brand-primary/5 rounded-2xl border border-brand-primary/10">
-                  <h4 className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] mb-2">ข้อมูลที่ต้องการเปลี่ยน</h4>
+                  <h4 className="text-[14px] font-black text-brand-primary uppercase tracking-[0.2em] mb-2">ข้อมูลที่ต้องการเปลี่ยน</h4>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-ui-text ml-1">รหัสสินค้าใหม่ *</label>
+                    <label className="text-[12px] font-bold text-ui-text ml-1">รหัสสินค้าใหม่ *</label>
                     <input
                       required
                       value={formData.Internal_Code2}
@@ -133,7 +133,7 @@ export function AddProductChangeModal({ isOpen, onClose, onSuccess }: AddProduct
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-ui-text ml-1">ชื่อสินค้าใหม่</label>
+                    <label className="text-[12px] font-bold text-ui-text ml-1">ชื่อสินค้าใหม่</label>
                     <input
                       value={formData.Prod_Name2}
                       onChange={e => setFormData({ ...formData, Prod_Name2: e.target.value })}
@@ -143,7 +143,7 @@ export function AddProductChangeModal({ isOpen, onClose, onSuccess }: AddProduct
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-ui-text ml-1">รหัสลูกค้า (ผูกเฉพาะราย)</label>
+                    <label className="text-[12px] font-bold text-ui-text ml-1">รหัสลูกค้า (ผูกเฉพาะราย)</label>
                     <input
                       value={formData.Cus_Code}
                       onChange={e => setFormData({ ...formData, Cus_Code: e.target.value })}
@@ -158,14 +158,14 @@ export function AddProductChangeModal({ isOpen, onClose, onSuccess }: AddProduct
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 py-3 text-xs font-black uppercase text-ui-muted hover:text-ui-text transition-colors"
+                  className="flex-1 py-3 text-sm font-black uppercase text-ui-muted hover:text-ui-text transition-colors"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-[2] py-4 bg-brand-primary text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-brand-primary/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-[2] py-4 bg-brand-primary text-white rounded-2xl font-black uppercase text-sm tracking-widest shadow-lg shadow-brand-primary/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loading ? <Loader2 size={16} className="animate-spin" /> : "บันทึกข้อมูล"}
                 </button>
