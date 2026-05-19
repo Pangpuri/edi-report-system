@@ -6,6 +6,33 @@ import { getPOPrintData, getBulkPOPrintData, moveProcessedToHistoryAction } from
 import { getCustomerAddresses, CustomerAddressData } from "@/app/actions/master/address-actions";
 import { Loader2, Printer, Search, X, AlertCircle } from "lucide-react";
 
+const formatDateToDDMMYYYY = (dateString: string | null | undefined): string => {
+  if (!dateString) return "";
+
+  const val = dateString.toString().trim();
+  
+  // 1. กรณี YYYY-MM-DD หรือ YYYY/MM/DD (รองรับที่มีเวลาต่อท้าย เช่น 2024-10-27 10:00:00)
+  const isoMatch = val.match(/^(\d{4})[-\/](\d{2})[-\/](\d{2})/);
+  if (isoMatch) {
+    const [_, y, m, d] = isoMatch;
+    return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+  }
+
+  // 2. กรณี DD-MM-YYYY หรือ DD/MM/YYYY
+  const dmyMatch = val.match(/^(\d{1,2})-\/-\//);
+  if (dmyMatch) {
+    const [_, d, m, y] = dmyMatch;
+    return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+  }
+
+  // 3. กรณี YYYYMMDD (รูปแบบ legacy string เช่น 20241027)
+  if (/^\d{8}$/.test(val)) {
+    return `${val.slice(6, 8)}/${val.slice(4, 6)}/${val.slice(0, 4)}`;
+  }
+
+  return val;
+};
+
 interface POHeader {
   id: number;
   customerNum?: string | null;
@@ -116,8 +143,8 @@ export default function POPrintPage({ params }: { params: Promise<{ id: string }
       deptName: "",
       note: "",
       poNum: header.customerPo || "",
-      datePo: header.datePo || "",
-      dateShip: header.dateShip || "",
+      datePo: formatDateToDDMMYYYY(header.datePo),
+      dateShip: formatDateToDDMMYYYY(header.dateShip),
       dateCancel: "-",
       paymentTerm: "",
       poType: "-",
