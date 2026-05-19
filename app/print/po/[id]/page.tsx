@@ -337,8 +337,8 @@ export default function POPrintPage({ params }: { params: Promise<{ id: string }
 
               {/* Header - Page 1 Only */}
               {pageIdx === 0 && (
-                <div className="grid grid-cols-2 gap-0 border-t border-black mb-4 text-black">
-                  <div className="border-r border-black p-4 space-y-1">
+                <div className="grid grid-cols-2 gap-0 border-t border-black mb-4 text-black print:grid-cols-[1fr_210px]">
+                  <div className="p-4 space-y-1">
                     <div className="flex items-center gap-2 mb-1 border-b border-dotted border-black/20 pb-0.5">
                       <span>ผู้สั่งซื้อ :</span>
                       <input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.customerNum} onChange={(e) => handleFieldChange(poIdx, "customerNum", e.target.value)} />
@@ -354,18 +354,18 @@ export default function POPrintPage({ params }: { params: Promise<{ id: string }
                     </div>
                     <div className="flex gap-4">
                       <div className="flex-1 flex gap-1 items-center">
-                        <span className="text-[12px]">โทรศัพท์:</span>
+                        <span className="text-[11px]">โทรศัพท์:</span>
                         <input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.telephone} onChange={(e) => handleFieldChange(poIdx, "telephone", e.target.value)} />
                       </div>
                       <div className="flex-1 flex gap-1 items-center">
-                        <span className="text-[12px]">โทรสาร:</span>
+                        <span className="text-[11px]">โทรสาร:</span>
                         <input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.faxNo} onChange={(e) => handleFieldChange(poIdx, "faxNo", e.target.value)} />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 mt-4 pt-2 border-t border-black">
-                      <div className="flex items-center gap-1"><span>Dept Code:</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.deptCode} onChange={(e) => handleFieldChange(poIdx, "deptCode", e.target.value)} /></div>
-                      <div className="flex items-center gap-1"><span>Dept Name:</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.deptName} onChange={(e) => handleFieldChange(poIdx, "deptName", e.target.value)} /></div>
-                    </div>
+                    
+                      <div className="flex items-center gap-1"><span>Dept Code :</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.deptCode} onChange={(e) => handleFieldChange(poIdx, "deptCode", e.target.value)} /></div>
+                      <div className="flex items-center gap-1"><span>Dept Name :</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.deptName} onChange={(e) => handleFieldChange(poIdx, "deptName", e.target.value)} /></div>
+                    
                     <div className="mt-4 pt-4 border-t border-black text-black">
                       <div className="mb-1 border-b border-dotted border-black/20 pb-0.5">ผู้ผลิต : {po.header.hType || "H"}</div>
                       <div className="py-0.5">บ.โรงงานผลิตภัณฑ์อาหารไทย จำกัด.</div>
@@ -391,7 +391,7 @@ export default function POPrintPage({ params }: { params: Promise<{ id: string }
                         <div key={f.name} className="flex items-center">
                           <span className="w-36 flex-shrink-0 opacity-60">{f.label}</span>
                           <div className="flex-1 flex items-center">
-                            <input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData[f.name]} onChange={(e) => handleFieldChange(poIdx, f.name, e.target.value)} />
+                            <input className={`flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors ${f.name === 'paymentTerm' ? 'mr-5' : ''}`} value={po.editData[f.name]} onChange={(e) => handleFieldChange(poIdx, f.name, e.target.value)} />
                             {f.suffix && <span className="ml-1">{f.suffix}</span>}
                           </div>
                         </div>
@@ -410,8 +410,8 @@ export default function POPrintPage({ params }: { params: Promise<{ id: string }
                         <input className="w-20 bg-slate-50 hover:bg-slate-100 outline-none border-none px-1 rounded-sm text-center text-black transition-colors" value={po.editData.shipToZipCode} onChange={(e) => handleFieldChange(poIdx, "shipToZipCode", e.target.value)} />
                       </div>
                       <div className="flex gap-4">
-                        <div className="flex-1 flex gap-1 items-center"><span className="text-[12px]">โทรศัพท์:</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.shipToTelephone} onChange={(e) => handleFieldChange(poIdx, "shipToTelephone", e.target.value)} /></div>
-                        <div className="flex-1 flex gap-1 items-center"><span className="text-[12px]">โทรสาร:</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.shipToFaxNo} onChange={(e) => handleFieldChange(poIdx, "shipToFaxNo", e.target.value)} /></div>
+                        <div className="flex-1 flex gap-1 items-center"><span className="text-[11px]">โทรศัพท์:</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.shipToTelephone} onChange={(e) => handleFieldChange(poIdx, "shipToTelephone", e.target.value)} /></div>
+                        <div className="flex-1 flex gap-1 items-center"><span className="text-[11px]">โทรสาร:</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.shipToFaxNo} onChange={(e) => handleFieldChange(poIdx, "shipToFaxNo", e.target.value)} /></div>
                       </div>
                     </div>
                   </div>
@@ -462,16 +462,19 @@ export default function POPrintPage({ params }: { params: Promise<{ id: string }
 
               {/* Summary Section - Page Last */}
               {pageIdx === pages.length - 1 && (
-                <div className="mt-4 flex justify-end text-black">
-                  <div className="w-72 border p-3 space-y-1.5">
-                    <div className="flex justify-between"><span>รวมเงิน :</span><span>{totals.subtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
-                    <div className="flex justify-between"><span>ส่วนลด :</span><span>0.00</span></div>
-                    <div className="flex justify-between"><span>คงเหลือ :</span><span>0.00</span></div>
-                    <div className="flex justify-between"><span>ส่วนลดพิเศษ :</span><span>0.00</span></div>
-                    <div className="flex justify-between border-b border-black pb-1"><span>ภาษีมูลค่าเพิ่ม :</span><span>{totals.vat.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
-                    <div className="flex justify-between pt-1 font-bold"><span>รวมทั้งสิ้น :</span><span>{totals.grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                <>
+                  <div className="w-full border-t border-black mt-4"></div> {/* เส้นคั่นยาวเต็มความกว้าง */}
+                  <div className="flex justify-end text-black">
+                    <div className="w-72 border p-3 space-y-1.5">
+                      <div className="flex justify-between"><span>รวมเงิน :</span><span>{totals.subtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                      <div className="flex justify-between"><span>ส่วนลด :</span><span>0.00</span></div>
+                      <div className="flex justify-between"><span>คงเหลือ :</span><span>0.00</span></div>
+                      <div className="flex justify-between"><span>ส่วนลดพิเศษ :</span><span>0.00</span></div>
+                      <div className="flex justify-between border-b border-black pb-1"><span>ภาษีมูลค่าเพิ่ม :</span><span>{totals.vat.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                      <div className="flex justify-between pt-1 font-bold"><span>รวมทั้งสิ้น :</span><span>{totals.grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                    </div>
                   </div>
-                </div>
+                </>
               )}
 
               {/* Document End Footer */}
