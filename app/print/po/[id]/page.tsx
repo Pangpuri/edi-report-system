@@ -40,6 +40,7 @@ interface POHeader {
   customerPo?: string | null;
   datePo?: string | null;
   dateShip?: string | null;
+  deliTime?: string | null;
   eanLocationCode?: string | null;
   companyNameMaster?: string | null;
   fileName?: string | null;
@@ -88,6 +89,7 @@ interface POEditData {
   poNum: string;
   datePo: string;
   dateShip: string;
+  timeShip: string;
   dateCancel: string;
   paymentTerm: string;
   poType: string;
@@ -145,6 +147,7 @@ export default function POPrintPage({ params }: { params: Promise<{ id: string }
       poNum: header.customerPo || "",
       datePo: formatDateToDDMMYYYY(header.datePo),
       dateShip: formatDateToDDMMYYYY(header.dateShip),
+      timeShip: header.deliTime || "",
       dateCancel: "-",
       paymentTerm: "",
       poType: "-",
@@ -337,61 +340,71 @@ export default function POPrintPage({ params }: { params: Promise<{ id: string }
 
               {/* Header - Page 1 Only */}
               {pageIdx === 0 && (
-                <div className="grid grid-cols-2 gap-0 border-t border-black mb-4 text-black print:grid-cols-[1fr_210px]">
-                  <div className="p-4 space-y-1">
+                <div className="grid grid-cols-2 gap-0 border-t border-black mb-4 text-black">
+                  <div className="p-4 space-y-1 border-r border-black/5 print:border-none">
                     <div className="flex items-center gap-2 mb-1 border-b border-dotted border-black/20 pb-0.5">
                       <span>ผู้สั่งซื้อ :</span>
-                      <input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.customerNum} onChange={(e) => handleFieldChange(poIdx, "customerNum", e.target.value)} />
+                      <input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.customerNum || ""} onChange={(e) => handleFieldChange(poIdx, "customerNum", e.target.value)} />
                     </div>
-                    <input className="w-full uppercase bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors mb-0.5" value={po.editData.customerName} onChange={(e) => handleFieldChange(poIdx, "customerName", e.target.value)} />
+                    <input className="w-full uppercase bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors mb-0.5" value={po.editData.customerName || ""} onChange={(e) => handleFieldChange(poIdx, "customerName", e.target.value)} />
                     <div className="space-y-0.5 min-h-[3em]">
-                      <input className="w-full bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.address1} onChange={(e) => handleFieldChange(poIdx, "address1", e.target.value)} />
-                      <input className="w-full bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.address2} onChange={(e) => handleFieldChange(poIdx, "address2", e.target.value)} />
+                      <input className="w-full bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.address1 || ""} onChange={(e) => handleFieldChange(poIdx, "address1", e.target.value)} />
+                      <input className="w-full bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.address2 || ""} onChange={(e) => handleFieldChange(poIdx, "address2", e.target.value)} />
                     </div>
                     <div className="flex gap-2">
-                       <input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.city} onChange={(e) => handleFieldChange(poIdx, "city", e.target.value)} />
-                       <input className="w-20 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.zipCode} onChange={(e) => handleFieldChange(poIdx, "zipCode", e.target.value)} />
+                       <input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.city || ""} onChange={(e) => handleFieldChange(poIdx, "city", e.target.value)} />
+                       <input className="w-20 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.zipCode || ""} onChange={(e) => handleFieldChange(poIdx, "zipCode", e.target.value)} />
                     </div>
                     <div className="flex gap-4">
-                      <div className="flex-1 flex gap-1 items-center">
+                      <div className="w-56 flex gap-1 items-center">
                         <span className="text-[11px]">โทรศัพท์:</span>
-                        <input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.telephone} onChange={(e) => handleFieldChange(poIdx, "telephone", e.target.value)} />
+                        <input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.telephone || ""} onChange={(e) => handleFieldChange(poIdx, "telephone", e.target.value)} />
                       </div>
                       <div className="flex-1 flex gap-1 items-center">
                         <span className="text-[11px]">โทรสาร:</span>
-                        <input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.faxNo} onChange={(e) => handleFieldChange(poIdx, "faxNo", e.target.value)} />
+                        <input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.faxNo || ""} onChange={(e) => handleFieldChange(poIdx, "faxNo", e.target.value)} />
                       </div>
                     </div>
                     
-                      <div className="flex items-center gap-1"><span>Dept Code :</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.deptCode} onChange={(e) => handleFieldChange(poIdx, "deptCode", e.target.value)} /></div>
-                      <div className="flex items-center gap-1"><span>Dept Name :</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.deptName} onChange={(e) => handleFieldChange(poIdx, "deptName", e.target.value)} /></div>
+                      <div className="flex items-center gap-1"><span>Dept Code :</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.deptCode || ""} onChange={(e) => handleFieldChange(poIdx, "deptCode", e.target.value)} /></div>
+                      <div className="flex items-center gap-1"><span>Dept Name :</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.deptName || ""} onChange={(e) => handleFieldChange(poIdx, "deptName", e.target.value)} /></div>
                     
                     <div className="mt-4 pt-4 border-t border-black text-black">
                       <div className="mb-1 border-b border-dotted border-black/20 pb-0.5">ผู้ผลิต : {po.header.hType || "H"}</div>
                       <div className="py-0.5">บ.โรงงานผลิตภัณฑ์อาหารไทย จำกัด.</div>
                       <div className="text-black">42/1 หมู่ 4 ถ.เพชรเกษม ต.อ้อมใหญ่ อ.สามพราน จ.นครปฐม 73160</div>
                       <div className="flex gap-4 mt-1"><span>โทรศัพท์ : 028116210</span><span>โทรสาร : 028116220</span></div>
-                      <div className="mt-4 flex gap-2 items-start"><span>หมายเหตุ :</span><textarea className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm resize-none h-12 overflow-hidden leading-snug text-black transition-colors" value={po.editData.note} onChange={(e) => handleFieldChange(poIdx, "note", e.target.value)} /></div>
+                      <div className="mt-4 flex gap-2 items-start"><span>หมายเหตุ :</span><textarea className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm resize-none h-12 overflow-hidden leading-snug text-black transition-colors" value={po.editData.note || ""} onChange={(e) => handleFieldChange(poIdx, "note", e.target.value)} /></div>
                     </div>
                   </div>
                   <div className="p-4 space-y-1 text-black">
-                    <div className="space-y-1.5 mb-4 mt-4">
+                    <div className="space-y-1.5 mb-4 mt-2">
                       {([
-                        { label: "เลขที่ใบสั่งซื้อ :", name: "poNum" },
-                        { label: "วันที่สั่งสินค้า :", name: "datePo" },
-                        { label: "วันที่ส่งสินค้า :", name: "dateShip" },
-                        { label: "วันที่ยกเลิกใบสั่งซื้อ :", name: "dateCancel" },
-                        { label: "การชำระเงิน :", name: "paymentTerm", suffix: "วัน" },
-                        { label: "PO Type :", name: "poType" },
-                        { label: "Mail Promotion :", name: "mailPromotion" },
-                        { label: "ส่วนลด(%) :", name: "discount" },
-                        { label: "รหัสภายในผู้ผลิต :", name: "vendorInternalCode" },
-                        { label: "รหัสสำนักงานใหญ่ :", name: "headOfficeCode" },
+                        { label: "เลขที่ใบสั่งซื้อ:", name: "poNum" },
+                        { label: "วันที่สั่งสินค้า:", name: "datePo" },
+                        { label: "วันที่ส่งสินค้า:", name: "dateShip" },
+                        { label: "วันที่ยกเลิกใบสั่งซื้อ:", name: "dateCancel" },
+                        { label: "การชำระเงิน:", name: "paymentTerm", suffix: "วัน" },
+                        { label: "PO Type:", name: "poType" },
+                        { label: "Mail Promotion:", name: "mailPromotion" },
+                        { label: "ส่วนลด(%):", name: "discount" },
+                        { label: "รหัสภายในผู้ผลิต:", name: "vendorInternalCode" },
+                        { label: "รหัสสำนักงานใหญ่:", name: "headOfficeCode" },
                       ] as { label: string; name: keyof POEditData; suffix?: string }[]).map(f => (
                         <div key={f.name} className="flex items-center">
                           <span className="w-36 flex-shrink-0 opacity-60">{f.label}</span>
                           <div className="flex-1 flex items-center">
-                            <input className={`flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors ${f.name === 'paymentTerm' ? 'mr-5' : ''}`} value={po.editData[f.name]} onChange={(e) => handleFieldChange(poIdx, f.name, e.target.value)} />
+                            {['poNum', 'datePo', 'dateShip'].includes(f.name) ? (
+                              <span className="px-1 font-mono text-black">{po.editData[f.name]}</span>
+                            ) : (
+                              <input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData[f.name] || ""} onChange={(e) => handleFieldChange(poIdx, f.name, e.target.value)} />
+                            )}
+                            {f.name === 'dateShip' && (
+                              <div className="flex items-center ml-4 flex-1">
+                                <span className="mr-2 opacity-60">เวลา:</span>
+                                <input className="w-20 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.timeShip || ""} onChange={(e) => handleFieldChange(poIdx, "timeShip", e.target.value)} />
+                              </div>
+                            )}
                             {f.suffix && <span className="ml-1">{f.suffix}</span>}
                           </div>
                         </div>
@@ -399,19 +412,19 @@ export default function POPrintPage({ params }: { params: Promise<{ id: string }
                     </div>
                     <div className="mt-4 pt-4 border-t border-black group/shipto relative text-black">
                       <button onClick={() => setShowAddressSelector({ show: true, poIndex: poIdx })} className={`absolute right-0 top-4 p-1.5 border border-black bg-white rounded transition-all print:hidden ${showAddressSelector.show && showAddressSelector.poIndex === poIdx ? "bg-black text-white ring-4 ring-black/5" : "opacity-40 hover:opacity-100"}`} title="ค้นหาที่จัดส่ง"><Search size={12} /></button>
-                      <div className="flex items-center gap-2 mb-1 border-b border-dotted border-black/20 pb-0.5"><span>โปรดส่งสินค้าไปที่ :</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.shipToEan} onChange={(e) => handleFieldChange(poIdx, "shipToEan", e.target.value)} /></div>
-                      <input className="w-full uppercase bg-slate-50 hover:bg-slate-100 outline-none border-none px-1 rounded-sm py-0.5 text-black transition-colors mb-0.5" value={po.editData.shipToName} onChange={(e) => handleFieldChange(poIdx, "shipToName", e.target.value)} />
+                      <div className="flex items-center gap-2 mb-1 border-b border-dotted border-black/20 pb-0.5"><span>โปรดส่งสินค้าไปที่ :</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.shipToEan || ""} onChange={(e) => handleFieldChange(poIdx, "shipToEan", e.target.value)} /></div>
+                      <input className="w-full uppercase bg-slate-50 hover:bg-slate-100 outline-none border-none px-1 rounded-sm py-0.5 text-black transition-colors mb-0.5" value={po.editData.shipToName || ""} onChange={(e) => handleFieldChange(poIdx, "shipToName", e.target.value)} />
                       <div className="space-y-0.5 min-h-[3em]">
-                        <input className="w-full bg-slate-50 hover:bg-slate-100 outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.shipToAddress1} onChange={(e) => handleFieldChange(poIdx, "shipToAddress1", e.target.value)} />
-                        <input className="w-full bg-slate-50 hover:bg-slate-100 outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.shipToAddress2} onChange={(e) => handleFieldChange(poIdx, "shipToAddress2", e.target.value)} />
+                        <input className="w-full bg-slate-50 hover:bg-slate-100 outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.shipToAddress1 || ""} onChange={(e) => handleFieldChange(poIdx, "shipToAddress1", e.target.value)} />
+                        <input className="w-full bg-slate-50 hover:bg-slate-100 outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.shipToAddress2 || ""} onChange={(e) => handleFieldChange(poIdx, "shipToAddress2", e.target.value)} />
                       </div>
                       <div className="flex gap-2">
-                        <input className="flex-1 bg-slate-50 hover:bg-slate-100 outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.shipToCity} onChange={(e) => handleFieldChange(poIdx, "shipToCity", e.target.value)} />
-                        <input className="w-20 bg-slate-50 hover:bg-slate-100 outline-none border-none px-1 rounded-sm text-center text-black transition-colors" value={po.editData.shipToZipCode} onChange={(e) => handleFieldChange(poIdx, "shipToZipCode", e.target.value)} />
+                        <input className="flex-1 bg-slate-50 hover:bg-slate-100 outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.shipToCity || ""} onChange={(e) => handleFieldChange(poIdx, "shipToCity", e.target.value)} />
+                        <input className="w-20 bg-slate-50 hover:bg-slate-100 outline-none border-none px-1 rounded-sm text-center text-black transition-colors" value={po.editData.shipToZipCode || ""} onChange={(e) => handleFieldChange(poIdx, "shipToZipCode", e.target.value)} />
                       </div>
                       <div className="flex gap-4">
-                        <div className="flex-1 flex gap-1 items-center"><span className="text-[11px]">โทรศัพท์:</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.shipToTelephone} onChange={(e) => handleFieldChange(poIdx, "shipToTelephone", e.target.value)} /></div>
-                        <div className="flex-1 flex gap-1 items-center"><span className="text-[11px]">โทรสาร:</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.shipToFaxNo} onChange={(e) => handleFieldChange(poIdx, "shipToFaxNo", e.target.value)} /></div>
+                        <div className="w-56 flex gap-1 items-center"><span className="text-[11px]">โทรศัพท์:</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.shipToTelephone || ""} onChange={(e) => handleFieldChange(poIdx, "shipToTelephone", e.target.value)} /></div>
+                        <div className="flex-1 flex gap-1 items-center"><span className="text-[11px]">โทรสาร:</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-[12px] text-black transition-colors" value={po.editData.shipToFaxNo || ""} onChange={(e) => handleFieldChange(poIdx, "shipToFaxNo", e.target.value)} /></div>
                       </div>
                     </div>
                   </div>
