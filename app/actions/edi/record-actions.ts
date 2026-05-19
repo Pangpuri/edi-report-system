@@ -4,7 +4,8 @@ import { db } from "@/db";
 import { 
   TEDH_history, 
   TEDL_history,
-  customer
+  customer,
+  custAddress
 } from "@/db/schema";
 import { eq, desc, sql, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";

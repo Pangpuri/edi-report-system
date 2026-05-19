@@ -8,6 +8,7 @@ import {
   TEDL, 
   as400_logs, 
   customer,
+  custAddress,
   prodcode,
   Edit_Detail,
   TEDH_history,
@@ -30,11 +31,21 @@ function trimFields<T extends object>(obj: T): T {
   return result;
 }
 
+export interface POOverrides {
+  poNum?: string;
+  customerNum?: string;
+  customerName?: string;
+  datePo?: string;
+  dateShip?: string;
+  deptCode?: string;
+  note?: string;
+}
+
 export async function upsertToAS400(headerId: number) {
   try {
     await checkSession();
 
-    // 🛠️ DATABASE INTEGRITY CHECK: ตรวจสอบและสร้างตาราง Record หากยังไม่มี
+    //  DATABASE INTEGRITY CHECK: ตรวจสอบและสร้างตาราง Record หากยังไม่มี
     await db.execute(sql`
       -- 1. สร้างตาราง EDH_record ถ้ายังไม่มี
       CREATE TABLE IF NOT EXISTS "EDH_record" (
@@ -178,11 +189,11 @@ export async function upsertToAS400(headerId: number) {
     });
 
     const result = await db.transaction(async (tx) => {
-      // --- 1. บันทึกข้อมูลลงใน History (รายการข้อมูลก่อนพิมพ์) ---
+      // --- 1. บันทึกข้อมูลลงใน Processed Data (รายการข้อมูลก่อนพิมพ์) ---
       const [newHistory] = await tx.insert(TEDH).values(trimmedHeader).returning({ id: TEDH.id });
       if (!newHistory) throw new Error("ไม่สามารถสร้างข้อมูลประวัติส่วนหัวได้");
 
-      const historyDetails = detailsWithMaster.map((d, index) => trimFields({
+      const processedDetails = detailsWithMaster.map((d, index) => trimFields({
         Header_Id: newHistory.id,
         D_Type: "D",
         Customer_PO: d.Customer_PO,
@@ -206,41 +217,9 @@ export async function upsertToAS400(headerId: number) {
         Change_Prod_Name: d.editNewName || "",       // ชื่อใหม่ของสินค้า
         Check_Name_Old_Prod: d.Product_Name || "",   // ชื่อเดิมสินค้าจากไฟล์ที่ import
       }));
-      await tx.insert(TEDL).values(historyDetails);
+      await tx.insert(TEDL).values(processedDetails);
 
-      // --- 2. บันทึกข้อมูลลงใน Record (ข้อมูลที่นำเข้าระบบแล้ว) ---
-      const [newRecord] = await tx.insert(TEDH_history).values({
-        ...trimmedHeader,
-        AS400_Status: true,
-      }).returning({ id: TEDH_history.id });
-
-      const recordDetails = detailsWithMaster.map((d, index) => trimFields({
-        Header_Id: newRecord.id, // ต้องใช้ ID จาก TEDH_history เท่านั้น
-        D_Type: "D",
-        Customer_PO: d.Customer_PO,
-        Customer_Num: header.Customer_Num,
-        Line_Num: d.Line_Num || (index + 1).toString(), 
-        Product_Name: d.masterDescription || d.Product_Name, 
-        Pack_Size: "CN", 
-        Bar_Code_Item: d.Bar_Code_Item || d.masterEanCode,
-        Buyer_Prod_Code: d.Customer_Num || "-", 
-        Vendor_Prod_Code: d.Item_Num, 
-        Qty_Order: d.Qty_Order,
-        Price_Unit: d.Price_Unit,
-        Free_Qty: d.Free_Qty,
-        Discount_1: d.Discount_1,
-        Discount_2: d.Discount_2,
-        Discount_3: d.Discount_3,
-        Net_Amount: d.Net_Amount,
-        File_Name: d.File_Name || header.File_Name,
-        Check_Bar_Int: d.editNewBarcode || "",       
-        Change_Item: d.editNewInternalCode || "",    // รหัสใหม่
-        Change_Prod_Name: d.editNewName || "",       // ชื่อใหม่
-        Check_Name_Old_Prod: d.Product_Name || "",   // ชื่อเดิม
-      }));
-      await tx.insert(TEDL_history).values(recordDetails); // หมายเหตุ: แม้ชื่อตัวแปรจะเป็น TEDL_history แต่ใน schema.ts มันชี้ไปที่ EDL_record ครับ
-
-      // --- 3. สร้างฟอร์แมทสำหรับ AS/400 (.tab) ---
+      // --- 2. สร้างฟอร์แมทสำหรับ AS/400 (.tab) ---
       let tab = "";
       const hLine = [
         "H",
@@ -288,14 +267,14 @@ export async function upsertToAS400(headerId: number) {
         tab += dLine + "\n";
       });
 
-      // 4. ลบข้อมูลจากตารางพัก (Temp)
+      // 3. ลบข้อมูลจากตารางพัก (Temp)
       await tx.delete(EDL_temp).where(and(
         eq(EDL_temp.Customer_PO, header.Customer_PO ?? ""),
         eq(EDL_temp.File_Name, header.File_Name ?? "")
       ));
       await tx.delete(EDH_temp).where(eq(EDH_temp.id, headerId));
 
-      // 5. บันทึก Log การทำงาน
+      // 4. บันทึก Log การทำงาน
       await tx.insert(as400_logs).values({
         historyId: newHistory.id,
         status: "success",
@@ -319,6 +298,95 @@ export async function upsertToAS400(headerId: number) {
       success: false, 
       message: `โอนไม่สำเร็จ: ${error instanceof Error ? error.message : "เกิดข้อผิดพลาด"}` 
     };
+  }
+}
+
+/**
+ * ย้ายข้อมูลจาก Processed Data (TEDH/TEDL) ไปยัง History Record (TEDH_history/TEDL_history)
+ * พร้อมรองรับข้อมูลที่มีการแก้ไข (Overrides) จากหน้า Preview
+ */
+export async function moveProcessedToHistoryAction(headerIds: number[], overrides?: POOverrides) {
+  try {
+    await checkSession();
+    if (headerIds.length === 0) return { success: false, message: "กรุณาเลือกรายการที่ต้องการดำเนินการ" };
+
+    const newMappings: Record<number, number> = {};
+
+    await db.transaction(async (tx) => {
+      // 1. ดึงข้อมูลจากตารางหลัก (TEDH)
+      const headers = await tx.select().from(TEDH).where(inArray(TEDH.id, headerIds));
+      
+      for (const h of headers) {
+        // 2. ดึง Detail (TEDL)
+        const details = await tx.select().from(TEDL).where(eq(TEDL.Header_Id, h.id));
+
+        // เตรียมข้อมูล Header โดยใช้ overrides ถ้ามี (กรณีส่งมาจากหน้า Preview)
+        const headerData = {
+          H_Type: h.H_Type,
+          Customer_PO: overrides?.poNum || h.Customer_PO,
+          Customer_Num: overrides?.customerNum || h.Customer_Num,
+          Customer_Name: overrides?.customerName || h.Customer_Name,
+          Buyer_Name: h.Buyer_Name,
+          Date_PO: overrides?.datePo || h.Date_PO,
+          Date_Ship: overrides?.dateShip || h.Date_Ship,
+          Total_Amount: h.Total_Amount,
+          File_Name: h.File_Name,
+          AS400_Status: h.AS400_Status,
+          Flag: h.Flag,
+          Cus_Name_OP: overrides?.deptCode || h.Cus_Name_OP, 
+          Cus_Prod_Change: overrides?.note || h.Cus_Prod_Change, 
+          AS400_Imported_At: h.AS400_Imported_At,
+        };
+
+        // 3. บันทึกข้อมูลลงใน Record (History Archive)
+        const [newRecord] = await tx.insert(TEDH_history).values(headerData).returning({ id: TEDH_history.id });
+
+        if (newRecord) {
+          newMappings[h.id] = newRecord.id;
+
+          if (details.length > 0) {
+            const historyDetails = details.map(d => ({
+              Header_Id: newRecord.id,
+              D_Type: d.D_Type,
+              Customer_PO: overrides?.poNum || d.Customer_PO,
+              Customer_Num: overrides?.customerNum || d.Customer_Num,
+              Line_Num: d.Line_Num,
+              Product_Name: d.Product_Name,
+              Pack_Size: d.Pack_Size,
+              Bar_Code_Item: d.Bar_Code_Item,
+              Buyer_Prod_Code: d.Buyer_Prod_Code,
+              Vendor_Prod_Code: d.Vendor_Prod_Code,
+              Qty_Order: d.Qty_Order,
+              Price_Unit: d.Price_Unit,
+              Free_Qty: d.Free_Qty,
+              Discount_1: d.Discount_1,
+              Discount_2: d.Discount_2,
+              Discount_3: d.Discount_3,
+              Net_Amount: d.Net_Amount,
+              Check_Bar_Int: d.Check_Bar_Int,
+              File_Name: d.File_Name,
+              Change_Item: d.Change_Item,
+              Change_Prod_Name: d.Change_Prod_Name,
+              Check_Name_Old_Prod: d.Check_Name_Old_Prod,
+            }));
+            await tx.insert(TEDL_history).values(historyDetails);
+          }
+
+          // 4. ลบข้อมูลออกจาก Processed Data (TEDH/TEDL)
+          await tx.delete(TEDH).where(eq(TEDH.id, h.id));
+        }
+      }
+    });
+
+    revalidatePath("/");
+    return { 
+      success: true, 
+      message: `ย้ายข้อมูลเข้าคลังประวัติสำเร็จ ${headerIds.length} รายการ`,
+      newMappings 
+    };
+  } catch (error) {
+    console.error("Move to History Error:", error);
+    return { success: false, message: "เกิดข้อผิดพลาดในการย้ายข้อมูล" };
   }
 }
 
@@ -444,9 +512,14 @@ export async function getImportedAS400Data() {
       flag: TEDH.Flag,
       cusNameOp: TEDH.Cus_Name_OP,
       cusProdChange: TEDH.Cus_Prod_Change,
+      eanLocationCode: customer.ean_location_code,
+      hasAddress: sql<boolean>`EXISTS (
+        SELECT 1 FROM ${custAddress} 
+        WHERE TRIM(${custAddress.ean_location_code}) = TRIM(${customer.ean_location_code})
+      )`,
     })
     .from(TEDH)
-    .leftJoin(customer, eq(TEDH.Customer_Num, customer.customer_code))
+    .leftJoin(customer, sql`TRIM(${TEDH.Customer_Num}) = TRIM(${customer.customer_code})`)
     .orderBy(desc(TEDH.Created_At));
 
     return results;
@@ -518,16 +591,105 @@ export async function getAS400LogsByHistoryIds(historyIds: number[]) {
   }
 }
 
-export async function getAllAS400Logs(limit: number = 100) {
+/**
+ * ดึงข้อมูลสำหรับการพิมพ์ใบ PO
+ */
+export async function getPOPrintData(headerId: number, tableType: 'processed' | 'history') {
+  console.log(`🔍 [getPOPrintData] Fetching data for ID: ${headerId}, Type: ${tableType}`);
   try {
-    const logs = await db.select()
-      .from(as400_logs)
-      .orderBy(desc(as400_logs.createdAt))
-      .limit(limit);
-    
-    return logs;
+    const headerTable = tableType === 'processed' ? TEDH : TEDH_history;
+    const detailTable = tableType === 'processed' ? TEDL : TEDL_history;
+
+    console.log(`📂 [getPOPrintData] Querying Header table: ${tableType === 'processed' ? 'TEDH' : 'TEDH_history'}`);
+
+    const header = await db.select({
+      id: headerTable.id,
+      customerPo: headerTable.Customer_PO,
+      customerNum: headerTable.Customer_Num,
+      customerName: headerTable.Customer_Name,
+      buyerName: headerTable.Buyer_Name,
+      datePo: headerTable.Date_PO,
+      dateShip: headerTable.Date_Ship,
+      totalAmount: headerTable.Total_Amount,
+      fileName: headerTable.File_Name,
+      hType: headerTable.H_Type,
+      createdAt: headerTable.Created_At,
+      eanLocationCode: customer.ean_location_code,
+      companyNameMaster: customer.company_name,
+    })
+    .from(headerTable)
+    .leftJoin(customer, sql`TRIM(${headerTable.Customer_Num}) = TRIM(${customer.customer_code})`)
+    .where(eq(headerTable.id, headerId))
+    .then(res => res[0]);
+
+    if (!header) {
+      console.warn(`⚠️ [getPOPrintData] Header not found for ID: ${headerId} in ${tableType}`);
+      return null;
+    }
+
+    console.log(`✅ [getPOPrintData] Found Header: ${header.customerPo} for customer: ${header.customerNum}`);
+
+    // ดึงที่อยู่จาก EAN
+    const address = await db.select()
+      .from(custAddress)
+      .where(sql`TRIM(${custAddress.ean_location_code}) = TRIM(${header.eanLocationCode || ''})`)
+      .then(res => res[0]);
+
+    if (!address) {
+      console.warn(`⚠️ [getPOPrintData] Address not found for EAN: ${header.eanLocationCode}`);
+    } else {
+      console.log(` [getPOPrintData] Found Address for: ${address.company_name}`);
+    }
+
+    const details = await db.select({
+      id: detailTable.id,
+      headerId: detailTable.Header_Id,
+      customerPo: detailTable.Customer_PO,
+      customerNum: detailTable.Customer_Num,
+      lineNum: detailTable.Line_Num,
+      productName: detailTable.Product_Name,
+      packSize: detailTable.Pack_Size,
+      barCodeItem: detailTable.Bar_Code_Item,
+      buyerProdCode: detailTable.Buyer_Prod_Code,
+      vendorProdCode: detailTable.Vendor_Prod_Code,
+      qtyOrder: detailTable.Qty_Order,
+      priceUnit: detailTable.Price_Unit,
+      freeQty: detailTable.Free_Qty,
+      discount1: detailTable.Discount_1,
+      discount2: detailTable.Discount_2,
+      discount3: detailTable.Discount_3,
+      netAmount: detailTable.Net_Amount,
+    })
+    .from(detailTable)
+    .where(eq(detailTable.Header_Id, headerId))
+    .orderBy(sql`CAST(${detailTable.Line_Num} AS INTEGER)`);
+
+    console.log(`📦 [getPOPrintData] Found ${details.length} items`);
+
+    return {
+      header,
+      address,
+      details
+    };
   } catch (error) {
-    console.error("Fetch All AS400 Logs Error:", error);
+    console.error("❌ [getPOPrintData] Error:", error);
+    return null;
+  }
+}
+
+/**
+ * ดึงข้อมูลสำหรับการพิมพ์ใบ PO แบบหลายรายการพร้อมกัน (Bulk)
+ */
+export async function getBulkPOPrintData(headerIds: number[], tableType: 'processed' | 'history') {
+  try {
+    const results = [];
+    for (const id of headerIds) {
+      const data = await getPOPrintData(id, tableType);
+      if (data) results.push(data);
+    }
+    return results;
+  } catch (error) {
+    console.error("Get Bulk PO Print Data Error:", error);
     return [];
   }
 }

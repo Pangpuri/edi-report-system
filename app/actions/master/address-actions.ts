@@ -75,13 +75,35 @@ export async function createAddressAction(data: z.infer<typeof addressSchema>): 
   try {
     await checkSession();
     const validatedFields = addressSchema.safeParse(data);
-    if (!validatedFields.success) return { success: false, error: "ข้อมูลที่อยู่ไม่ถูกต้อง" };
+    if (!validatedFields.success) {
+      console.error("❌ Validation Error:", validatedFields.error.format());
+      return { success: false, error: "ข้อมูลที่อยู่ไม่ถูกต้อง" };
+    }
 
     const values = validatedFields.data;
+    console.log("📝 Inserting Address Values:", values);
+    
     await db.insert(custAddress).values({
-      ...values,
-      customer_no: values.customer_no ?? "", 
+      ean_location_code: values.ean_location_code || "",
+      company_name: values.company_name || "",
+      address1: values.address1 || "",
+      address2: values.address2 || "",
+      city: values.city || "",
+      zip_code: values.zip_code || "",
+      telephone: values.telephone || "",
+      fax_no: values.fax_no || "",
+      customer_no: values.customer_no || "",
+      ship_to_code: values.ship_to_code || "",
+      usage_code: values.usage_code || "",
+      product_table: values.product_table || "",
+      local_name: values.local_name || "",
+      branch_code: values.branch_code || "",
+      tax_id: values.tax_id || "",
+      branch_short_name: values.branch_short_name || "",
+      signature: values.signature || "",
+      doc_ref_pttrm: values.doc_ref_pttrm || "",
     });
+    
     revalidatePath("/");
     return { success: true };
   } catch (error) {

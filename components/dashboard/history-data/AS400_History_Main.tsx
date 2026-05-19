@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   CheckCircle2, 
@@ -11,15 +11,28 @@ import {
   RefreshCw,
   Clock,
   Check,
-  Trash2
+  Trash2,
+  AlertTriangle,
+  MapPinPlus,
+  X
 } from "lucide-react";
 
+import { moveProcessedToHistoryAction } from "@/app/actions/edi/as400-actions";
 import { useAS400History } from "@/app/actions/edi/history-actions";
 import { useColumnResizer } from "@/hooks/useColumnResizer";
+import { AddAddressForm } from "../master-data/addresses/AddressForm";
+import { addressSchema } from "@/lib/validations/edi";
+import * as z from "zod";
+
+type AddressFormData = z.infer<typeof addressSchema>;
 
 export function AS400History() {
   const { columnWidths: headerWidths, handleResize: handleHeaderResize } = useColumnResizer();
   const { columnWidths: detailWidths, handleResize: handleDetailResize } = useColumnResizer();
+
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [addressInitialValues, setAddressInitialValues] = useState<Partial<AddressFormData> | null>(null);
+  const [isPendingPrint, startPrintTransition] = useTransition();
 
   const handleResize = (table: 'header' | 'detail', column: string, e: React.MouseEvent) => {
     if (table === 'header') handleHeaderResize(column, e);
@@ -28,6 +41,7 @@ export function AS400History() {
 
   const {
     selectedHeaders,
+    setSelectedHeaders,
     detailData,
     logData,
     activeBottomTab,
@@ -47,6 +61,44 @@ export function AS400History() {
     handleReTransfer,
     handleDeleteSelectedHeaders
   } = useAS400History();
+
+  // --- Helpers ---
+  const selectedMissingAddress = useMemo(() => {
+    return selectedHeaders.filter(h => !h.hasAddress);
+  }, [selectedHeaders]);
+
+  const canPrint = useMemo(() => {
+    return selectedHeaders.length > 0 && selectedMissingAddress.length === 0;
+  }, [selectedHeaders, selectedMissingAddress]);
+
+  const handleAddAddress = () => {
+    if (selectedMissingAddress.length === 0) return;
+    
+    // พรีฟิลข้อมูลจากตัวแรกที่เลือก
+    const firstMissing = selectedMissingAddress[0];
+    setAddressInitialValues({
+      customer_no: firstMissing.customerNum || "",
+      ean_location_code: firstMissing.eanLocationCode || "",
+      company_name: firstMissing.customerName || "",
+    });
+    setShowAddAddressModal(true);
+  };
+
+  const handlePrint = async () => {
+    if (selectedHeaders.length === 0) return;
+
+    // ตรวจสอบที่อยู่เบื้องต้น (แม้จะแก้ได้ในหน้าถัดไป แต่กันไว้ก่อน)
+    if (!canPrint) {
+      if (!confirm("บางรายการไม่พบที่อยู่ต้นทาง คุณต้องการดำเนินการต่อและไปแก้ไขในหน้าถัดไปหรือไม่?")) return;
+    }
+
+    const ids = selectedHeaders.map(h => h.id).join(",");
+    const url = `/print/po/bulk?ids=${ids}&type=processed`;
+    window.open(url, '_blank');
+    
+    // หมายเหตุ: เราจะไม่ setSelectedHeaders([]) หรือ loadData() ตรงนี้ 
+    // เพราะเราจะให้หน้า Print เป็นตัวสั่ง Archive เมื่อกดพิมพ์จริงครับ
+  };
 
   // ฟังก์ชันสำหรับส่งออกข้อมูลที่เลือกเป็นไฟล์ TXT เพื่อดูรูปแบบโครงสร้างข้อมูล (จำลองการส่งเข้า AS400)
   const handleExportTxt = async () => {
@@ -80,13 +132,10 @@ export function AS400History() {
       content += `\n==================================================\n\n`;
     });
 
-    // หมายเหตุ: ปลายทาง AS400 บางเครื่องอาจต้องการ encoding เฉพาะเจาะจง 
-    // การระบุ charset=utf-8 จะช่วยให้เปิดดูใน Notepad/VS Code ได้ถูกต้อง
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    // เปลี่ยนชื่อไฟล์ให้สื่อว่าเป็นไฟล์สำหรับ Preview/Review ข้อมูล ไม่ใช่ไฟล์โอนเข้าจริง
     link.download = `EDI_AS400_REVIEW_${new Date().toISOString().split('T')[0]}.txt`;
     document.body.appendChild(link);
     link.click();
@@ -96,7 +145,7 @@ export function AS400History() {
     // อัปเดตสถานะในฐานข้อมูลสำหรับรายการที่ยังไม่นำเข้า
     for (const h of selectedHeaders) {
       if (!h.as400Status) {
-        await handleToggleStatus(h.id, true); // Assuming export means it's now considered processed for AS400
+        await handleToggleStatus(h.id, true);
       }
     }
   };
@@ -104,17 +153,17 @@ export function AS400History() {
   return (
     <div className="bg-ui-card p-4 md:p-6 rounded-xl border border-ui-border shadow-lg min-h-[600px] flex flex-col relative overflow-hidden text-ui-text">
       
-      {/* ส่วน Loading ขณะประมวลผลประวัติ */}
       <AnimatePresence>
-        {(isLoading || isTransferring) && (
+        {(isLoading || isTransferring || isPendingPrint) && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-ui-card/80 backdrop-blur-sm flex flex-col items-center justify-center">
             <Loader2 size={32} className="animate-spin text-brand-primary mb-2" />
-            <h3 className="text-brand-primary font-bold text-sm uppercase tracking-widest">กำลังประมวลผลประวัติ...</h3>
+            <h3 className="text-brand-primary font-bold text-sm uppercase tracking-widest">
+              {isPendingPrint ? "กำลังย้ายข้อมูลเข้าคลังประวัติ..." : "กำลังประมวลผลประวัติ..."}
+            </h3>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ส่วนหัวตารางและแถบค้นหา */}
       <div className="flex flex-col lg:flex-row justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500 border border-emerald-500/20">
@@ -145,7 +194,7 @@ export function AS400History() {
 
       <div className="flex-1 flex flex-col gap-4 min-h-0">
         
-        {/* --- ส่วนตารางบน: ประวัติรายการทั้งหมด --- */}
+        {/* --- Table Header --- */}
         <div className="flex-[3] min-h-0 flex flex-col bg-ui-bg/30 border border-ui-border rounded-lg overflow-hidden shadow-inner">
           <div className="px-4 py-2 border-b border-ui-border bg-ui-card flex justify-between items-center whitespace-nowrap">
             <div className="flex items-center gap-3">
@@ -157,113 +206,47 @@ export function AS400History() {
               </button>
               <h3 className="text-sm font-black uppercase tracking-widest text-brand-primary">ฐานข้อมูลปัจจุบัน ({filteredHeaders.length}) รายการ</h3>
             </div>
-            <span className="text-[10px] font-bold text-ui-muted uppercase">{filteredHeaders.length} รายการ</span>
+            <div className="flex items-center gap-4">
+              {selectedMissingAddress.length > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-status-error/10 text-status-error border border-status-error/20 rounded-lg ">
+                  <AlertTriangle size={14} />
+                  <span className="text-[14px] font-medium uppercase tracking-tight">
+                    ไม่พบที่อยู่ลูกค้าในฐานข้อมูลหลัก ({selectedMissingAddress.length} รายการ)
+                  </span>
+                  <button 
+                    onClick={handleAddAddress}
+                    className="ml-2 flex items-center gap-1 px-2 py-0.5 bg-status-error text-white rounded text-[12px] font-black hover:bg-status-error/90 transition-all"
+                  >
+                    <MapPinPlus size={10} /> เพิ่มที่อยู่
+                  </button>
+                </div>
+              )}
+              <span className="text-[12px] font-medium text-ui-muted uppercase">{filteredHeaders.length} รายการ</span>
+            </div>
           </div>
           <div className="flex-1 overflow-auto custom-scrollbar">
             <table className="w-full text-left text-xs border-collapse min-w-[1500px] table-fixed">
               <thead className="sticky top-0 bg-ui-bg border-b border-ui-border z-10">
                 <tr className="font-medium uppercase text-ui-muted whitespace-nowrap">
                   <th className="px-2 py-2 border-r border-ui-border w-[60px] text-center relative">เลือก</th>
-                  
-                  <th style={{ width: headerWidths['customerNum'] || 100 }} className="px-4 py-2 border-r border-ui-border relative group">
-                    <span className="truncate block">ลูกค้า</span>
-                    <div onMouseDown={(e) => handleResize('header', 'customerNum', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
-                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
-                    </div>
-                  </th>
-                  
-                  <th style={{ width: headerWidths['fileName'] || 150 }} className="px-4 py-2 border-r border-ui-border relative group">
-                    <span className="truncate block">ชื่อ file</span>
-                    <div onMouseDown={(e) => handleResize('header', 'fileName', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
-                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
-                    </div>
-                  </th>
-                  
-                  <th style={{ width: headerWidths['customerPo'] || 150 }} className="px-4 py-2 border-r border-ui-border relative group">
-                    <span className="truncate block">เลขที่ใบสั่งซื้อ</span>
-                    <div onMouseDown={(e) => handleResize('header', 'customerPo', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
-                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
-                    </div>
-                  </th>
-                  
-                  <th style={{ width: headerWidths['buyerName'] || 120 }} className="px-4 py-2 border-r border-ui-border relative group">
-                    <span className="truncate block">ผู้สั่งซื้อ</span>
-                    <div onMouseDown={(e) => handleResize('header', 'buyerName', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
-                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
-                    </div>
-                  </th>
-                  
-                  <th style={{ width: headerWidths['customerName'] || 200 }} className="px-4 py-2 border-r border-ui-border relative group">
-                    <span className="truncate block">ชื่อบริษัท</span>
-                    <div onMouseDown={(e) => handleResize('header', 'customerName', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
-                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
-                    </div>
-                  </th>
-                  
-                  <th style={{ width: headerWidths['datePo'] || 100 }} className="px-4 py-2 border-r border-ui-border relative group">
-                    <span className="truncate block">วันที่สั่ง</span>
-                    <div onMouseDown={(e) => handleResize('header', 'datePo', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
-                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
-                    </div>
-                  </th>
-                  
-                  <th style={{ width: headerWidths['dateShip'] || 100 }} className="px-4 py-2 border-r border-ui-border relative group">
-                    <span className="truncate block">วันที่ส่ง</span>
-                    <div onMouseDown={(e) => handleResize('header', 'dateShip', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
-                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
-                    </div>
-                  </th>
-                  
-                  <th style={{ width: headerWidths['totalAmount'] || 120 }} className="px-4 py-2 border-r border-ui-border text-right relative group">
-                    <span className="truncate block">จำนวนเงินรวม</span>
-                    <div onMouseDown={(e) => handleResize('header', 'totalAmount', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
-                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
-                    </div>
-                  </th>
-                  
-                  <th style={{ width: headerWidths['as400ImportedAt'] || 150 }} className="px-4 py-2 border-r border-ui-border relative group">
-                    <span className="truncate block">วันที่นำเข้าจริง</span>
-                    <div onMouseDown={(e) => handleResize('header', 'as400ImportedAt', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
-                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
-                    </div>
-                  </th>
-                  
-                  <th style={{ width: headerWidths['status'] || 150 }} className="px-4 py-2 border-r border-ui-border text-center relative group">
-                    <span className="truncate block">สถานะ</span>
-                    <div onMouseDown={(e) => handleResize('header', 'status', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
-                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
-                    </div>
-                  </th>
-                  
-                  <th style={{ width: headerWidths['flag'] || 60 }} className="px-4 py-2 border-r border-ui-border text-center relative group">
-                    <span className="truncate block">Flag</span>
-                    <div onMouseDown={(e) => handleResize('header', 'flag', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
-                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
-                    </div>
-                  </th>
-                  
-                  <th style={{ width: headerWidths['cusNameOp'] || 120 }} className="px-4 py-2 border-r border-ui-border text-center relative group">
-                    <span className="truncate block">Cus_Name_OP</span>
-                    <div onMouseDown={(e) => handleResize('header', 'cusNameOp', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
-                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
-                    </div>
-                  </th>
-                  
-                  <th style={{ width: headerWidths['cusProdChange'] || 120 }} className="px-4 py-2 text-center relative group">
-                    <span className="truncate block">Cus_Prod_Change</span>
-                    <div onMouseDown={(e) => handleResize('header', 'cusProdChange', e)} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand-primary/30 transition-all z-20 flex justify-center">
-                      <div className="w-[1px] h-full bg-slate-400/50 dark:bg-blue-400" />
-                    </div>
-                  </th>
+                  <th style={{ width: headerWidths['customerNum'] || 100 }} className="px-4 py-2 border-r border-ui-border relative group">ลูกค้า</th>
+                  <th style={{ width: headerWidths['fileName'] || 150 }} className="px-4 py-2 border-r border-ui-border relative group">ชื่อ file</th>
+                  <th style={{ width: headerWidths['customerPo'] || 150 }} className="px-4 py-2 border-r border-ui-border relative group">เลขที่ใบสั่งซื้อ</th>
+                  <th style={{ width: headerWidths['buyerName'] || 120 }} className="px-4 py-2 border-r border-ui-border relative group">ผู้สั่งซื้อ</th>
+                  <th style={{ width: headerWidths['customerName'] || 200 }} className="px-4 py-2 border-r border-ui-border relative group">ชื่อบริษัท</th>
+                  <th style={{ width: headerWidths['datePo'] || 100 }} className="px-4 py-2 border-r border-ui-border relative group">วันที่สั่ง</th>
+                  <th style={{ width: headerWidths['dateShip'] || 100 }} className="px-4 py-2 border-r border-ui-border relative group">วันที่ส่ง</th>
+                  <th style={{ width: headerWidths['totalAmount'] || 120 }} className="px-4 py-2 border-r border-ui-border text-right relative group">จำนวนเงินรวม</th>
+                  <th style={{ width: headerWidths['as400ImportedAt'] || 150 }} className="px-4 py-2 border-r border-ui-border relative group">วันที่นำเข้าจริง</th>
+                  <th style={{ width: headerWidths['status'] || 150 }} className="px-4 py-2 border-r border-ui-border text-center relative group">สถานะ</th>
+                  <th style={{ width: headerWidths['flag'] || 60 }} className="px-4 py-2 border-r border-ui-border text-center relative group">Flag</th>
+                  <th style={{ width: headerWidths['cusNameOp'] || 120 }} className="px-4 py-2 border-r border-ui-border text-center relative group">Cus_Name_OP</th>
+                  <th style={{ width: headerWidths['cusProdChange'] || 120 }} className="px-4 py-2 text-center relative group">Cus_Prod_Change</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ui-border/10">
                 {filteredHeaders.length === 0 ? (
-                  <tr>
-                    <td colSpan={14} className="px-4 py-20 text-center text-ui-muted italic">
-                      ไม่พบประวัติการนำเข้าในระบบ 
-                    </td>
-                  </tr>
+                  <tr><td colSpan={14} className="px-4 py-20 text-center text-ui-muted italic">ไม่พบประวัติการนำเข้าในระบบ</td></tr>
                 ) : (
                   filteredHeaders.map(h => {
                     const isSelected = selectedHeaders.some(sh => sh.id === h.id);
@@ -278,7 +261,16 @@ export function AS400History() {
                             {isSelected && <Check size={10} />}
                           </div>
                         </td>
-                        <td className="px-4 py-2 border-r border-ui-border/10">{h.shortName || h.customerNum}</td>
+                        <td className="px-4 py-2 border-r border-ui-border/10">
+                          <div className="flex items-center gap-2">
+                            {h.shortName || h.customerNum}
+                            {!h.hasAddress && (
+                              <div title="ไม่พบที่อยู่" className="text-status-error">
+                                <AlertTriangle size={12} />
+                              </div>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-4 py-2 border-r border-ui-border/10 truncate max-w-[120px]" title={h.fileName ?? ""}>{h.fileName}</td>
                         <td className="px-4 py-2 border-r border-ui-border/10 text-brand-primary">{h.customerPo}</td>
                         <td className="px-4 py-2 border-r border-ui-border/10">{h.buyerName || h.customerNum}</td>
@@ -286,9 +278,7 @@ export function AS400History() {
                         <td className="px-4 py-2 border-r border-ui-border/10">{h.datePo}</td>
                         <td className="px-4 py-2 border-r border-ui-border/10">{h.dateShip}</td>
                         <td className="px-4 py-1.5 text-right font-medium text-emerald-600">{Number(h.totalAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                        <td className="px-4 py-2 border-r border-ui-border/10 text-ui-muted">
-                          {h.importedAtDisplay || "-"}
-                        </td>
+                        <td className="px-4 py-2 border-r border-ui-border/10 text-ui-muted">{h.importedAtDisplay || "-"}</td>
                         <td className="px-4 py-2 text-center">
                           <span className={`text-[11px] font-black uppercase tracking-tight ${h.as400Status ? "text-emerald-600" : "text-status-error"}`}>
                             {h.as400Status ? "นำเข้าAS400แล้ว" : "ยังไม่นำเข้าAS400"}
@@ -306,48 +296,32 @@ export function AS400History() {
           </div>
         </div>
 
-        {/* --- ส่วนล่าง: รายละเอียด (สินค้า / Logs) --- */}
+        {/* --- Detail Table --- */}
         <div className="flex-[2] min-h-0 flex flex-col bg-ui-card border border-ui-border rounded-lg overflow-hidden shadow-2xl">
           <div className="px-4 py-1.5 border-b border-ui-border bg-ui-bg/50 flex justify-between items-center whitespace-nowrap">
             <div className="flex items-center gap-4">
                 <div className="flex bg-ui-bg p-0.5 rounded-lg border border-ui-border">
-                  <button 
-                    onClick={() => setActiveBottomTab("items")}
-                    className={`px-3 py-1 rounded-md text-[12px] font-black uppercase tracking-widest transition-all ${activeBottomTab === "items" ? "bg-brand-primary text-white shadow-sm" : "text-ui-muted hover:text-ui-text"}`}
-                  >
-                    รายละเอียด
-                  </button>
-                  <button 
-                    onClick={() => setActiveBottomTab("logs")}
-                    className={`px-3 py-1 rounded-md text-[12px] font-black uppercase tracking-widest transition-all ${activeBottomTab === "logs" ? "bg-emerald-600 text-white shadow-sm" : "text-ui-muted hover:text-ui-text"}`}
-                  >
-                    ประวัติดำเนินการของข้อมูล
-                  </button>
+                  <button onClick={() => setActiveBottomTab("items")} className={`px-3 py-1 rounded-md text-[12px] font-black uppercase tracking-widest transition-all ${activeBottomTab === "items" ? "bg-brand-primary text-white shadow-sm" : "text-ui-muted hover:text-ui-text"}`}>รายละเอียด</button>
+                  <button onClick={() => setActiveBottomTab("logs")} className={`px-3 py-1 rounded-md text-[12px] font-black uppercase tracking-widest transition-all ${activeBottomTab === "logs" ? "bg-emerald-600 text-white shadow-sm" : "text-ui-muted hover:text-ui-text"}`}>ประวัติดำเนินการของข้อมูล</button>
                 </div>
                 {(isDetailLoading || isPending || isLogsLoading) && <Loader2 size={12} className="animate-spin text-brand-primary" />}
             </div>
             <div className="flex gap-2">
               {selectedHeaders.length > 0 && (
-                <button 
-                  onClick={handleDeleteSelectedHeaders}
-                  className="flex items-center gap-1.5 px-3 py-1 bg-status-error/10 text-status-error border border-status-error/20 rounded-lg text-[12px] font-black uppercase tracking-widest hover:bg-status-error hover:text-white transition-all"
-                >
+                <button onClick={handleDeleteSelectedHeaders} className="flex items-center gap-1.5 px-3 py-1 bg-status-error/10 text-status-error border border-status-error/20 rounded-lg text-[12px] font-black uppercase tracking-widest hover:bg-status-error hover:text-white transition-all">
                   <Trash2 size={18} /> ลบข้อมูลออก ({selectedHeaders.length})
                 </button>
               )}
-              <button 
-                onClick={handleReTransfer}
-                disabled={selectedHeaders.length === 0 || isTransferring}
-                className="disabled:opacity-30 flex items-center gap-1.5 px-3 py-1 bg-ui-bg border border-ui-border rounded-lg text-[12px] font-black uppercase tracking-widest hover:text-brand-primary transition-all"
-              >
+              <button onClick={handleReTransfer} disabled={selectedHeaders.length === 0 || isTransferring} className="disabled:opacity-30 flex items-center gap-1.5 px-3 py-1 bg-ui-bg border border-ui-border rounded-lg text-[12px] font-black uppercase tracking-widest hover:text-brand-primary transition-all">
                 <RefreshCw size={14} className={isTransferring ? "animate-spin" : ""} /> Re-Transfer ({selectedHeaders.length})
               </button>
               <button 
-                disabled={selectedHeaders.length === 0} 
-                className="disabled:opacity-30 flex items-center gap-1.5 px-3 py-1 bg-brand-primary text-white rounded-lg text-[12px] font-black uppercase tracking-widest shadow-md"
+                onClick={handlePrint}
+                disabled={!canPrint || isPendingPrint} 
+                title={!canPrint ? "กรุณาเพิ่มที่อยู่ลูกค้าให้ครบถ้วนก่อนพิมพ์" : "พิมพ์ใบสั่งซื้อและย้ายเข้าคลังประวัติ"}
+                className={`disabled:opacity-30 flex items-center gap-1.5 px-3 py-1 rounded-lg text-[12px] font-black uppercase tracking-widest shadow-md transition-all ${canPrint ? "bg-brand-primary text-white hover:bg-brand-primary/90" : "bg-ui-muted text-ui-text cursor-not-allowed"}`}
               >
-                {/* รอรูปแบบฟอร์ม */}
-                <Printer size={14} /> Print ({selectedHeaders.length}) 
+                <Printer size={14} /> Print & Archive ({selectedHeaders.length}) 
               </button>
             </div>
           </div>
@@ -361,107 +335,47 @@ export function AS400History() {
               <table className="w-full text-left border-collapse min-w-[1800px] table-fixed">
                 <thead className="sticky top-0 bg-ui-bg border-b border-ui-border z-20">
                   <tr className="font-medium uppercase text-ui-muted whitespace-nowrap">
-                    <th style={{ width: detailWidths['seqNum'] || 60 }} className="px-4 py-2 border-r border-ui-border relative group">
-                      ลำดับ
-                      <div onMouseDown={(e) => handleResize('detail', 'seqNum', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['productName'] || 250 }} className="px-4 py-2 border-r border-ui-border relative group">
-                      รายการ
-                      <div onMouseDown={(e) => handleResize('detail', 'productName', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['packSize'] || 100 }} className="px-4 py-2 border-r border-ui-border relative group">
-                      ขนาดบรรจุ
-                      <div onMouseDown={(e) => handleResize('detail', 'packSize', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['Bar_Code_Item'] || 130 }} className="px-4 py-2 border-r border-ui-border font-mono relative group">
-                      บาร์โค้ด
-                      <div onMouseDown={(e) => handleResize('detail', 'Bar_Code_Item', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['buyerProdCode'] || 120 }} className="px-4 py-2 border-r border-ui-border relative group">
-                      รหัสผู้ซื้อ
-                      <div onMouseDown={(e) => handleResize('detail', 'buyerProdCode', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['vendorProdCode'] || 120 }} className="px-4 py-2 border-r border-ui-border relative group">
-                      รหัสผู้ผลิต
-                      <div onMouseDown={(e) => handleResize('detail', 'vendorProdCode', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['orderQty'] || 80 }} className="px-4 py-2 border-r border-ui-border text-right relative group">
-                      จำนวน
-                      <div onMouseDown={(e) => handleResize('detail', 'orderQty', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['unitPrice'] || 100 }} className="px-4 py-2 border-r border-ui-border text-right relative group">
-                      ราคา
-                      <div onMouseDown={(e) => handleResize('detail', 'unitPrice', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['freeQty'] || 80 }} className="px-4 py-2 border-r border-ui-border text-right relative group">
-                      แถม
-                      <div onMouseDown={(e) => handleResize('detail', 'freeQty', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['discount1'] || 100 }} className="px-4 py-2 border-r border-ui-border text-right relative group">
-                      ส่วนลด 1
-                      <div onMouseDown={(e) => handleResize('detail', 'discount1', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th> 
-                    <th style={{ width: detailWidths['discount2'] || 100 }} className="px-4 py-2 border-r border-ui-border text-right relative group">
-                      ส่วนลด 2
-                      <div onMouseDown={(e) => handleResize('detail', 'discount2', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['discount3'] || 100 }} className="px-4 py-2 border-r border-ui-border text-right relative group">
-                      ส่วนลด 3
-                      <div onMouseDown={(e) => handleResize('detail', 'discount3', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>                    
-                    <th style={{ width: detailWidths['netAmount'] || 120 }} className="px-4 py-2 border-r border-ui-border text-right relative group">
-                      จำนวนเงิน
-                      <div onMouseDown={(e) => handleResize('detail', 'netAmount', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['checkBarInt'] || 130 }} className="px-4 py-2 border-r border-ui-border relative group">
-                      Check_Bar_In
-                      <div onMouseDown={(e) => handleResize('detail', 'checkBarInt', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['checkNameOldProd'] || 150 }} className="px-4 py-2 border-r border-ui-border relative group">
-                      Check_Name_Old_Prod
-                      <div onMouseDown={(e) => handleResize('detail', 'checkNameOldProd', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['changeItem'] || 130 }} className="px-4 py-2 border-r border-ui-border relative group">
-                      Change_Item
-                      <div onMouseDown={(e) => handleResize('detail', 'changeItem', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
-                    <th style={{ width: detailWidths['changeProdName'] || 180 }} className="px-4 py-2 border-r border-ui-border relative group">
-                      Change_Prod_Name
-                      <div onMouseDown={(e) => handleResize('detail', 'changeProdName', e)} className="absolute right-0 top-0 bottom-0 w-[1px] cursor-col-resize hover:bg-brand-primary/50 transition-colors" />
-                    </th>
+                    <th style={{ width: 60 }} className="px-4 py-2 border-r border-ui-border">ลำดับ</th>
+                    <th style={{ width: 250 }} className="px-4 py-2 border-r border-ui-border">รายการ</th>
+                    <th style={{ width: 100 }} className="px-4 py-2 border-r border-ui-border">ขนาดบรรจุ</th>
+                    <th style={{ width: 130 }} className="px-4 py-2 border-r border-ui-border font-mono">บาร์โค้ด</th>
+                    <th style={{ width: 120 }} className="px-4 py-2 border-r border-ui-border">รหัสผู้ซื้อ</th>
+                    <th style={{ width: 120 }} className="px-4 py-2 border-r border-ui-border">รหัสผู้ผลิต</th>
+                    <th style={{ width: 80 }} className="px-4 py-2 border-r border-ui-border text-right">จำนวน</th>
+                    <th style={{ width: 100 }} className="px-4 py-2 border-r border-ui-border text-right">ราคา</th>
+                    <th style={{ width: 80 }} className="px-4 py-2 border-r border-ui-border text-right">แถม</th>
+                    <th style={{ width: 100 }} className="px-4 py-2 border-r border-ui-border text-right">ส่วนลด 1</th>
+                    <th style={{ width: 100 }} className="px-4 py-2 border-r border-ui-border text-right">ส่วนลด 2</th>
+                    <th style={{ width: 100 }} className="px-4 py-2 border-r border-ui-border text-right">ส่วนลด 3</th>
+                    <th style={{ width: 120 }} className="px-4 py-2 border-r border-ui-border text-right">จำนวนเงิน</th>
+                    <th style={{ width: 130 }} className="px-4 py-2 border-r border-ui-border">Check_Bar_In</th>
+                    <th style={{ width: 150 }} className="px-4 py-2 border-r border-ui-border">Check_Name_Old_Prod</th>
+                    <th style={{ width: 130 }} className="px-4 py-2 border-r border-ui-border">Change_Item</th>
+                    <th style={{ width: 180 }} className="px-4 py-2">Change_Prod_Name</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ui-border/10">
-                  {detailData.length > 0 ? (
-                    Array.from(new Map(detailData.map(d => [d.id, d])).values()).map(d => (
-                      <tr key={d.id} className="hover:bg-ui-bg/50 transition-colors whitespace-nowrap text-ui-text font-medium">
-                        <td className="px-4 py-1.5 font-medium">{d.seqNum}</td>
-                        <td className="px-4 py-1.5 text-xs truncate max-w-[200px]" title={d.productName ?? ""}>{d.productName}</td>
-                        <td className="px-4 py-1.5">{d.packSize || "-"}</td>
-                        <td className="px-4 py-1.5 text-left text-emerald-600 font-mono">{d.Bar_Code_Item}</td>
-                        <td className="px-4 py-1.5">{d.buyerProdCode || "-"}</td>
-                        <td className="px-4 py-1.5">{d.vendorProdCode || "-"}</td>
-                        <td className="px-4 py-1.5 text-right">{Number(d.orderQty || 0).toFixed(2)}</td>
-                        <td className="px-4 py-1.5 text-right text-emerald-600">{Number(d.unitPrice || 0).toFixed(2)}</td>
-                        <td className="px-4 py-1.5 text-right">{Number(d.freeQty || 0).toFixed(2)}</td>
-                        <td className="px-4 py-1.5 text-right">{Number(d.discount1 || 0).toFixed(2)}</td>
-                        <td className="px-4 py-1.5 text-right">{Number(d.discount2 || 0).toFixed(2)}</td>
-                        <td className="px-4 py-1.5 text-right">{Number(d.discount3 || 0).toFixed(2)}</td>
-                        <td className="px-4 py-1.5 text-right font-medium text-emerald-600">{Number(d.netAmount || 0).toFixed(2)}</td>
-
-                        <td className="px-4 py-1.5 text-brand-primary font-mono">{d.checkBarInt || "-"}</td>
-                        <td className="px-4 py-1.5 truncate max-w-[120px]">{d.checkBarInt ? (d.checkNameOldProd || "-") : "-"}</td>
-                        <td className="px-4 py-1.5 truncate max-w-[100px]">{d.checkBarInt ? (d.changeItem || "-") : "-"}</td>
-                        <td className="px-4 py-1.5 truncate max-w-[150px]">{d.checkBarInt ? (d.changeProdName || "-") : "-"}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={17} className="px-4 py-10 text-center text-ui-muted italic">
-                        ไม่พบรายละเอียดสินค้าในประวัติ
-                      </td>
+                  {detailData.map(d => (
+                    <tr key={d.id} className="hover:bg-ui-bg/50 transition-colors whitespace-nowrap text-ui-text font-medium">
+                      <td className="px-4 py-1.5">{d.seqNum}</td>
+                      <td className="px-4 py-1.5 truncate max-w-[200px]" title={d.productName ?? ""}>{d.productName}</td>
+                      <td className="px-4 py-1.5">{d.packSize || "-"}</td>
+                      <td className="px-4 py-1.5 text-emerald-600 font-mono">{d.Bar_Code_Item}</td>
+                      <td className="px-4 py-1.5">{d.buyerProdCode || "-"}</td>
+                      <td className="px-4 py-1.5">{d.vendorProdCode || "-"}</td>
+                      <td className="px-4 py-1.5 text-right">{Number(d.orderQty || 0).toFixed(2)}</td>
+                      <td className="px-4 py-1.5 text-right text-emerald-600">{Number(d.unitPrice || 0).toFixed(2)}</td>
+                      <td className="px-4 py-1.5 text-right">{Number(d.freeQty || 0).toFixed(2)}</td>
+                      <td className="px-4 py-1.5 text-right">{Number(d.discount1 || 0).toFixed(2)}</td>
+                      <td className="px-4 py-1.5 text-right">{Number(d.discount2 || 0).toFixed(2)}</td>
+                      <td className="px-4 py-1.5 text-right">{Number(d.discount3 || 0).toFixed(2)}</td>
+                      <td className="px-4 py-1.5 text-right font-medium text-emerald-600">{Number(d.netAmount || 0).toFixed(2)}</td>
+                      <td className="px-4 py-1.5 text-brand-primary font-mono">{d.checkBarInt || "-"}</td>
+                      <td className="px-4 py-1.5 truncate max-w-[120px]">{d.checkBarInt ? (d.checkNameOldProd || "-") : "-"}</td>
+                      <td className="px-4 py-1.5 truncate max-w-[100px]">{d.checkBarInt ? (d.changeItem || "-") : "-"}</td>
+                      <td className="px-4 py-1.5 truncate max-w-[150px]">{d.checkBarInt ? (d.changeProdName || "-") : "-"}</td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             ) : (
@@ -474,33 +388,52 @@ export function AS400History() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ui-border/10">
-                  {logData.length > 0 ? (
-                    logData.map(log => (
-                      <tr key={log.id} className="hover:bg-ui-bg/50 transition-colors">
-                        <td className="px-4 py-2 font-mono text-ui-muted">
-                          {log.createdAtDisplay || "-"}
-                        </td>
-                        <td className="px-4 py-2 text-center">
-                          <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${log.status === 'success' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-status-error/10 text-status-error'}`}>
-                            {log.status === 'success' ? 'สำเร็จ' : log.status === 'failed' ? 'ล้มเหลว' : (log.status || '-')}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2 font-medium">{log.errorMessage || "ดำเนินการสำเร็จ"}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={3} className="px-4 py-10 text-center text-ui-muted italic">
-                        ไม่พบ Log การทำงาน
+                  {logData.map(log => (
+                    <tr key={log.id} className="hover:bg-ui-bg/50 transition-colors">
+                      <td className="px-4 py-2 font-mono text-ui-muted">{log.createdAtDisplay || "-"}</td>
+                      <td className="px-4 py-2 text-center">
+                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${log.status === 'success' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-status-error/10 text-status-error'}`}>
+                          {log.status === 'success' ? 'สำเร็จ' : log.status === 'failed' ? 'ล้มเหลว' : (log.status || '-')}
+                        </span>
                       </td>
+                      <td className="px-4 py-2 font-medium">{log.errorMessage || "ดำเนินการสำเร็จ"}</td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             )}
           </div>
         </div>
       </div>
+
+      {/* --- Add Address Modal --- */}
+      <AnimatePresence>
+        {showAddAddressModal && (
+          <div className="fixed inset-0 z-[100] flex justify-center bg-ui-bg/95 backdrop-blur-xl overflow-y-auto p-4 items-start sm:items-center">
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 40 }} className="w-full max-w-4xl my-auto">
+              <div className="flex justify-between items-center mb-6 px-6 py-4 bg-ui-card rounded-2xl border border-ui-border sticky top-0 z-10 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🏠</span>
+                  <h2 className="text-xl font-black text-brand-primary uppercase">เพิ่มที่อยู่ลูกค้า (ไม่พบในฐานข้อมูล)</h2>
+                </div>
+                <button onClick={() => setShowAddAddressModal(false)} className="p-2 hover:bg-brand-primary/10 text-ui-muted hover:text-brand-primary rounded-xl transition-all">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="bg-ui-card p-1 rounded-3xl border border-ui-border shadow-2xl">
+                <AddAddressForm 
+                  initialValues={addressInitialValues as AddressFormData} 
+                  mode="add"
+                  onSuccess={() => { 
+                    setShowAddAddressModal(false); 
+                    loadData(); 
+                  }} 
+                />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

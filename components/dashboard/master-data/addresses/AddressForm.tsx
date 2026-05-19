@@ -15,10 +15,11 @@ type AddressFormData = z.infer<typeof addressSchema>;
 interface AddAddressFormProps {
   initialValues?: AddressFormData;
   onSuccess?: () => void;
+  mode?: 'add' | 'edit';
 }
 
-export function AddAddressForm({ onSuccess, initialValues }: AddAddressFormProps) {
-  const isEdit = !!initialValues;
+export function AddAddressForm({ onSuccess, initialValues, mode }: AddAddressFormProps) {
+  const isEdit = mode ? mode === 'edit' : !!initialValues;
   const [isPending, startTransition] = useTransition();
   const { showToast } = useToast();
 

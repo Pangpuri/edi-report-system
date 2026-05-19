@@ -31,6 +31,8 @@ export interface EDHHistoryData {
   cusNameOp: string | null;
   cusProdChange: string | null;
   flag: boolean | null;
+  eanLocationCode: string | null;
+  hasAddress: boolean;
 }
 
 export interface AS400Log {
@@ -255,6 +257,7 @@ export function useAS400History() {
     filteredHeaders,
     loadData,
     handleSelectHeader,
+    setSelectedHeaders,
     toggleSelectAllHeaders,
     handleToggleStatus,
     handleReTransfer,

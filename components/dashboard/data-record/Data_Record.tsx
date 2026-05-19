@@ -70,7 +70,7 @@ export function DataRecord() {
     setIsLoading(true);
     try {
       const data = await getEDHRecordData();
-      setHeaderData(data as EDHRecord[]);
+      setHeaderData(data as unknown as EDHRecord[]);
     } catch (error) {
       console.error("Load Record Data Error:", error);
       showToast("ไม่สามารถโหลดข้อมูลที่นำเข้าระบบแล้วได้", "error");
