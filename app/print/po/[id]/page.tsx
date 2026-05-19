@@ -398,7 +398,7 @@ export default function POPrintPage({ params }: { params: Promise<{ id: string }
                       ))}
                     </div>
                     <div className="mt-4 pt-4 border-t border-black group/shipto relative text-black">
-                      <button onClick={() => setShowAddressSelector({ show: true, poIndex: poIdx })} className="absolute right-0 top-4 p-1.5 border border-black bg-white rounded opacity-0 group-hover/shipto:opacity-100 transition-all print:hidden"><Search size={12} /></button>
+                      <button onClick={() => setShowAddressSelector({ show: true, poIndex: poIdx })} className={`absolute right-0 top-4 p-1.5 border border-black bg-white rounded transition-all print:hidden ${showAddressSelector.show && showAddressSelector.poIndex === poIdx ? "bg-black text-white ring-4 ring-black/5" : "opacity-40 hover:opacity-100"}`} title="ค้นหาที่จัดส่ง"><Search size={12} /></button>
                       <div className="flex items-center gap-2 mb-1 border-b border-dotted border-black/20 pb-0.5"><span>โปรดส่งสินค้าไปที่ :</span><input className="flex-1 bg-slate-50 hover:bg-slate-100 focus:outline-none border-none px-1 rounded-sm text-black transition-colors" value={po.editData.shipToEan} onChange={(e) => handleFieldChange(poIdx, "shipToEan", e.target.value)} /></div>
                       <input className="w-full uppercase bg-slate-50 hover:bg-slate-100 outline-none border-none px-1 rounded-sm py-0.5 text-black transition-colors mb-0.5" value={po.editData.shipToName} onChange={(e) => handleFieldChange(poIdx, "shipToName", e.target.value)} />
                       <div className="space-y-0.5 min-h-[3em]">
@@ -433,7 +433,7 @@ export default function POPrintPage({ params }: { params: Promise<{ id: string }
                       <th className="py-2 px-1 border-r border-black text-right w-16">ส่วนลด(%)</th>
                       <th className="py-2 px-1 border-r border-black text-right w-16">ส่วนลด2</th>
                       <th className="py-2 px-1 border-r border-black text-right w-16">ส่วนลด3</th>
-                      <th className="py-2 px-1 text-right w-24">จำนวนเงิน</th>
+                      <th className="py-2 px-1 text-center w-24">จำนวนเงิน</th>
                     </tr>
                   </thead>
                   <tbody className="text-black">
@@ -485,10 +485,9 @@ export default function POPrintPage({ params }: { params: Promise<{ id: string }
 
       {/* Selector Sidebar */}
       {showAddressSelector.show && (
-        <div className="fixed inset-0 z-[100] flex justify-end bg-black/10 print:hidden">
-          <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col border-l border-black animate-in slide-in-from-right duration-200">
+        <div className="fixed right-0 top-0 bottom-0 z-[100] w-full max-w-md bg-white shadow-[-20px_0_50px_-12px_rgba(0,0,0,0.25)] flex flex-col border-l border-black animate-in slide-in-from-right duration-200 print:hidden">
             <div className="p-6 border-b border-black flex justify-between items-center bg-slate-50">
-              <div><h2 className="font-bold text-black uppercase">ค้นหาที่จัดส่ง</h2><p className="text-[9px] text-black/60 uppercase">PO: {poList[showAddressSelector.poIndex].editData.poNum}</p></div>
+              <div><h2 className="font-bold text-black uppercase text-sm">ค้นหาที่จัดส่ง</h2><p className="text-[10px] text-brand-primary font-bold uppercase mt-1">กำลังเลือกให้ PO: {poList[showAddressSelector.poIndex].editData.poNum}</p></div>
               <button onClick={() => setShowAddressSelector({show: false, poIndex: 0})} className="p-2 border border-black hover:bg-black hover:text-white transition-all"><X size={20}/></button>
             </div>
             <div className="p-4 bg-white border-b border-black"><div className="relative"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-black" /><input type="text" placeholder="ค้นหา..." className="w-full pl-10 pr-4 py-3 border border-black outline-none" autoFocus value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div></div>
@@ -500,7 +499,6 @@ export default function POPrintPage({ params }: { params: Promise<{ id: string }
                 </button>
               ))}
             </div>
-          </div>
         </div>
       )}
 
